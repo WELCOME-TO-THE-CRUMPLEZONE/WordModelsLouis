@@ -5,6 +5,7 @@ import os
 
 import MDRNN
 import VAE
+import config as c
 
 
 class WorldModel():
@@ -26,8 +27,16 @@ class WorldModel():
         self.vae = None
         self.mdrnn = None
     
+    def load(name):
+        """Load the settings of an existing WordModel"""
+        settings_path  = './data/'+ self.name + '/settings'
+        if os.path.exists(self.path):
+            print("Using existing directory: " + self.path)
+        else:
+            print('Tried to load non-existent settings', self.path)
 
-    def _01_generate_rollouts(self, total_episodes, time_steps, action_refresh_rate, render):
+
+    def _01_generate_rollouts(self, total_episodes, time_steps, file_lengths, action_refresh_rate, render):
         rollout_path = self.path + '/rollouts/'
 
         if os.path.exists(rollout_path):
@@ -42,13 +51,14 @@ class WorldModel():
         s = 0
         while s < total_episodes:
             episode_id = random.randint(0, 2**31-1)
-            filename = rollout_path + str(episode_id) + '.npz'
+            filename = rollout_path + str(episode_id)
 
             obs = env.reset()
             done = False
             reward = 0
 
             t = 0
+            u = 0
             obs_sequence = []
             action_sequence = []
             reward_sequence = []
@@ -71,9 +81,19 @@ class WorldModel():
 
                 if render:
                     env.render()
+
+                if t % file_lengths == 0 and t != 0:
+                    np.savez_compressed(filename +'_'+ str(u), obs=obs_sequence, action=action_sequence,
+                            reward = reward_sequence, done = done_sequence)
+                    u = u + 1
+                    obs_sequence = []
+                    action_sequence = []
+                    reward_sequence = []
+                    done_sequence = []
+
             print("Episode {} finished after {} timesteps".format(s, t))
 
-            np.savez_compressed(filename, obs=obs_sequence, action=action_sequence,
+            np.savez_compressed(filename +'_'+str(u), obs=obs_sequence, action=action_sequence,
                     reward = reward_sequence, done = done_sequence)
 
             s = s + 1
@@ -86,6 +106,7 @@ class WorldModel():
             return self.env
         else:
             env = gym.make(env_name)
+            self.env = env
             return env
             
 
