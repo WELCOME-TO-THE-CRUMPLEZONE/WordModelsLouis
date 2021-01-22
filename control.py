@@ -1,4 +1,5 @@
 import numpy as np
+import tensorflow as tf
 import gym
 import random
 import os
@@ -7,6 +8,10 @@ import MDRNN
 import VAE
 import config as c
 
+import matplotlib.image as mpimg
+
+SCREEN_SIZE_X = 64
+SCREEN_SIZE_Y = 64
 
 class WorldModel():
     """A class for running a complete world models experiment (minus training the final controller)"""
@@ -35,6 +40,7 @@ class WorldModel():
         else:
             print('Tried to load non-existent settings', self.path)
 
+#################################### 01 Generate Rollouts #####################################
 
     def _01_generate_rollouts(self, total_episodes, time_steps, file_lengths, action_refresh_rate, render):
         rollout_path = self.path + '/rollouts/'
@@ -70,6 +76,10 @@ class WorldModel():
                     action = self.get_action(t, env)
 
                 # obs = config.adjust_obs
+                obs = tf.image.resize(obs, [140,107])
+                #print(obs.shape)
+                #obs = obs.numpy()/255
+                #mpimg.imsave('./data/ims/'+str(t)+".png", obs)
                 obs_sequence.append(obs)
                 action_sequence.append(action)
                 reward_sequence.append(reward)
@@ -113,9 +123,70 @@ class WorldModel():
     def get_action(self, t, env): 
         return env.action_space.sample()
 
-    def _02_train_vae(self, restart = False):
-        if self.vae == None:
-            self.vae = load_vae()
+######################################## 02 Train VAE ##########################################
+
+
+    def _02_train_vae(self, new_model = False):
+        vae = self.load_vae(new_model)
+        
+        data, N = self.import_data(N,M)
+        for epoch in range(epochs):
+            print('EPOCH', str(epoch))
+            vae.save_weights('./VAE/weights/' + self.name +'.h5')
+            vae.train(data)
+        vae.save_weights('./VAE/weights/' + self.name +'.h5')
+
+    def load_vae(self, new_model):
+        if self.vae != None:
+            return self.vae
+        vae = VAE.VAE()
+        if not new_model:
+            vae.set_weights('./VAE/weights/' + self.name +'.h5')
+        self.vae = vae
+        return vae
+
+    def import_data(self, n_files, M):
+        rollout_path = self.path + '/rollouts/'
+        filelist = os.listdir()
+        filelist = [x for x in filelist if x != '.DS_Store']
+        filelist.sort()
+        length_filelist = len(filelist)
+
+
+        if length_filelist > n_files:
+            filelist = filelist[:n_files]
+
+        if length_filelist < n_files:
+            n_files = length_filelist
+
+        data = np.zeros((M*n_files, SCREEN_SIZE_X, SCREEN_SIZE_Y, 3), dtype=np.float32)
+        idx = 0
+        file_count = 0
+
+
+        for file in filelist:
+            try:
+                new_data = np.load(DIR_NAME + file)['obs']
+                #new_data = tf.image.resize(new_data, [64,64])
+                #resizing should happen when recordin data
+                data[idx:(idx + M), :, :, :] = new_data
+
+                idx = idx + M
+                file_count += 1
+
+                if file_count%50==0:
+                    print('Imported {} / {} ::: Current data size = {} observations'.format(file_count, N, idx))
+            except Exception as e:
+                print(e)
+                print('Skipped {}...'.format(file))
+
+        print('Imported {} / {} ::: Current data size = {} observations'.format(file_count, N, idx))
+
+        return data, N
+
+
+
+
 
     def _03_generate_vae_rollouts(self):
         pass
