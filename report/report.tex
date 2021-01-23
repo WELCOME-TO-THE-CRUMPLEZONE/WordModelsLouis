@@ -97,38 +97,81 @@
 }
 \begin{document}
 \maketitle
+\begin{abstract}
+In World Models (CITEME) David Ha et al describe an architecture allowing a computer agent to learn an internal model of its own environment.
+Their model was powerful enough that agents could be trained in its dreamed simulation to achieve good performance in the original environment.
+In this project I set out to create my own implimentation of the World Models architecture.
+
+\end{abstract}
 
 \section{Introduction}
 %background stuff of other world models
-When humans make decisions we often use an internal model of the problem at hand to inform our decision.
-This allows us to predict or calculate how the world might unfold based on our actions.
-For example, a chess player doesn't make a moved based solely on the current sate of the board, but instead uses their knowledge of the rules to look ahead and anticipate potential consequences of each move and evaluate them accordingly.
-Classical game AIs achieved great success on the same principle: a classical chess AI uses its knowledge of legal moves to heuristically search the tree of possible moves, picking the best continuation according to the MiniMax algorithm.
+When humans make decisions we often use an internal model of the problem at hand to inform our decision, allowing us to predict or calculate how the world might unfold based on our actions.
+This model based approach may be something we are conscious of, as in the case of a chess player who uses their knowledge to look ahead and evaluate potential moves.
+It also happens unconsciously, for example with batters in baseball who use an internal model to infer the position of the ball based on the the way the pitcher throws it, rather than reacting to the position of the ball milliseconds before it hits their bat.
+In either case this internal model greatly improves our performance at these tasks.
 
-In reinforcement learning we seek to develop AI which are capable of \textit{learning} to play games.
-Reinforcement learning agents equipped with models of their environment typically outperform similar agents with no model.
-Constructing a model of a complex environment by hand can be time consuming or infeasible, thus one area of active research in reinforcement learning is developing agents which are capable of learning their own internal models of the world without outside help.
-This is not a new area of research... %TODO
+In reinforcement learning we seek to develop computer agents which are capable of \textit{learning} to complete tasks.
+Inspired by the success of own model based thought process we naturally seek to equip these agents with models of their environment.
+There are several different ways this has been done.
+Most traditionally an agent may be supplied with a model which has been handcrafted by a human. %TODO example
+Unfortunately models made in this way are usually domain specific and thus the approach requires significant human involvement any time we try adapt an agent to learn in a new environment.
+In a complex or partially unobservable environment it may even be infeasible for a human to equip an agent with a model adequately describing its world. %example?
+More recently, deep reinforcement learning has circumvented this problem by increasing the complexity of the learned agent.
+Agents constructed using architectures such as recurrent neural networks (RNNs) learn to perform complex computations.
+In many cases they are able to harness this power to essentially learn their own model of the environment, allowing them to succeed at complex tasks without human intervention.
+Deep reinforcement learning is not a complete solution however: training of complex agents is notoriously difficult, with what is known as the \textit{Credit Assignment Problem} often preventing agents from learning in environments with sparse reward signals.
+A third approach, championed by Schmidthuber is to decouple the learning process, first learning a model $M$ and then using this model to train a controller $C$. %CITEME
+The advantage of this approach is that complex models can be learned without worrying about credit assignment, allowing us to more easily train a comparatively simple controller.
 
+World Models is a particularly simple implimentation of Schmidthuber's approach which has been shown to be remarkable effective at learning in image based environments. %CITEME
+It breaks an agent into three components, the first two are vision $V$ and model $M$, and together these allow an agent to interpret and model its world.
+The controller $C$ is then trained using both features of the environment and some of the internal knowledge of $M$.
+Significantly, the internal model comprised of $V$ and $M$ is powerful enough to recreate a simulated version of the original environment, known as a \textit{dream}.
+These dreams were close enough to the original environment that agents could be trained entirely inside a dream to perform well in the original environment.
+In this project I primarily set out to investigate this part of World Models, which consists of the $V$ and $M$ components.
 
+The structure of this report is as follows.
+We begin with a brief overview of the World Models' architecture which serves as the primary motivation throughout this report.
+In the subsequent three sections we discuss some of the theory behind each of the three components of World Models.
+Finally, in the last section I discuss my own implementation and results.
 
-
-
+\section{The World Models' Architecture}
 %overview of model V-M-C
 
+%deep reinforcment learning learns models but struggles with credit assignment
 
 
-\section{Variational Autoencoders}
+
+\section{V}
 %autoencoders (show old example?)
 %show new example
 
+The first component of the World Models architecture is the variational autoencoder (VAE).
+In this section I will explain in depth what a VAE is and what its function in the context of World Models is.
 
-\section{MDRNNs}
+\subsection{Autoencoders}
+Autoencoders allow us to learn more efficient representations of data.
+One way to think of them is as learning a lossy compression algorithm which is heuristically tailored torwards your data.
+
+
+
+\subsection{Variational Autoencoders}
+
+
+
+\section{M}
+
+\subsection{Mixture Density Nets}
+
+\subsection{Long Short Term Memory}
+
+\section{C}
 
 \section{Results?}
 
 \section{The gym environment}
 
-\clearpage
-\bibliography{ref} 
+%\clearpage
+%\bibliography{ref} 
 \end{document}
