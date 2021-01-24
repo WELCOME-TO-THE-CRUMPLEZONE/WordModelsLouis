@@ -137,7 +137,41 @@ In the subsequent three sections we discuss some of the theory behind each of th
 Finally, in the last section I discuss my own implementation and results.
 
 \section{The World Models' Architecture}
+%\subsection{Problem Description}
+World Models uses a fairly standard description of the reinforcement learning problem.
+Environments are broken down into discrete time steps.
+At a time $t$ an agent receives a partial observation of the environment $o_t$ and are reward $r_t$.
+The agent must then choose an action $a_t$ from a set of possible actions.
+In an \textit{episodic} task where there are only ever finitely many time steps the agent's task is to pick $a_t$ such that the sum of future rewards is maximised.
+In a \textit{continuing} task where the environment is ongoing an agent instead picks $a_t$ to maximise a weighted sum of future rewards where more distant rewards are seen as less valuable to ensure the sum converges.
+
+Although Schmidthuber's original ideas apply much more generally the World Models architecture is adapted to image based problems where the observation $o_t$ is a two dimensional image.
+Environments such as these are navigated with ease by humans playing videogames, yet still remain a challenge in reinforcement learning.
+David Ha et al. empirically tested their model in two different environments.
+The first one was \texttt{CarRacing-v0} where an agent must learn to drive a car based on a top-down image of the racing track. %CITEME
+The agent is rewarded more the more tiles they visit, which incentivises speedier, more accurate driving.
+The second environment was \texttt{VizDoom: Take Cover} where an agent learns to dodge fireballs thrown at it by demons in the 3D environment of the videogame Doom.
+In this environment observations are first person images from the perspective of the agent and rewards are simply given to the agent based on survival time.
+%TODO picture of both environments
+
+\begin{figure}[h]
+  \centering
+  \begin{minipage}{0.45\textwidth}
+      \centering
+      \includegraphics[width=0.9\textwidth]{CarRacing-v0.jpeg} % first figure itself
+      \caption{An observation from the \texttt{CarRacing-v0} environment}
+  \end{minipage}\hfill
+  \begin{minipage}{0.45\textwidth}
+      \centering
+      \includegraphics[width=0.9\textwidth]{VizDoom.jpeg} % second figure itself
+      \caption{An observation from the \texttt{VizDoom: Take Cover} environment}
+  \end{minipage}
+\end{figure}
+
+
+
 %overview of model V-M-C
+
 
 %deep reinforcment learning learns models but struggles with credit assignment
 

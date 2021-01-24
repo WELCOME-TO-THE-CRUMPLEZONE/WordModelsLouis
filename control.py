@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
 import gym
+import retro
 import random
 import os
 
@@ -12,6 +13,8 @@ import matplotlib.image as mpimg
 
 SCREEN_SIZE_X = 64
 SCREEN_SIZE_Y = 64
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 class WorldModel():
     """A class for running a complete world models experiment (minus training the final controller)"""
@@ -115,6 +118,14 @@ class WorldModel():
         if self.env != None:
             return self.env
         else:
+            if env_name == "SimCity-Snes":
+                retro.data.Integrations.add_custom_path(
+                    os.path.join(SCRIPT_DIR, "custom_integrations")
+                )
+                print("SimCity-Snes" in retro.data.list_games(inttype=retro.data.Integrations.ALL))
+                env = retro.make("SimCity-Snes", inttype=retro.data.Integrations.ALL)
+                return env
+
             env = gym.make(env_name)
             self.env = env
             return env

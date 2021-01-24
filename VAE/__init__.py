@@ -7,7 +7,7 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras import backend as K
 
 
-
+### Default 64 x 64
 INPUT_DIM = (64,64,3)
 INPUT_DIM = [140,107,3]
 
@@ -30,6 +30,54 @@ Z_DIM = 32
 BATCH_SIZE = 32
 LEARNING_RATE = 0.0001
 KL_TOLERANCE = 0.5
+
+
+## 160 x 90 small
+INPUT_DIM = [160,90,3]
+
+N_LAYERS = 4
+
+CONV_FILTERS = [32,64,64, 128]
+CONV_KERNEL_SIZES = [4,4,4,4]
+CONV_STRIDES = [2,2,2,2]
+CONV_ACTIVATIONS = ['relu','relu','relu','relu']
+
+DENSE_SIZE = 1024
+
+CONV_T_FILTERS = [64,64,32,3]
+CONV_T_KERNEL_SIZES = [5,5,6,6]
+CONV_T_STRIDES = [2,2,2,2]
+CONV_T_ACTIVATIONS = ['relu','relu','relu','sigmoid']
+
+Z_DIM = 32
+
+BATCH_SIZE = 32
+LEARNING_RATE = 0.0001
+KL_TOLERANCE = 0.5
+
+## 160 x 90 deeper
+INPUT_DIM = [160,90,3]
+
+N_LAYERS = 5
+
+CONV_FILTERS = [32,32,64,64, 128]
+CONV_KERNEL_SIZES = [3,3,3,3,3]
+CONV_STRIDES = [2,2,2,2,2]
+CONV_ACTIVATIONS = ['relu','relu','relu','relu','relu']
+
+DENSE_SIZE = 1024
+
+CONV_T_FILTERS = [64,64,32,32,3]
+CONV_T_KERNEL_SIZES = [5,5,5,6,6]
+CONV_T_STRIDES = [2,2,2,2,2]
+CONV_T_ACTIVATIONS = ['relu', 'relu','relu','relu','sigmoid']
+
+Z_DIM = 64
+
+BATCH_SIZE = 32
+LEARNING_RATE = 0.0001
+KL_TOLERANCE = 0.5
+
 
 
 class Sampling(Layer):
