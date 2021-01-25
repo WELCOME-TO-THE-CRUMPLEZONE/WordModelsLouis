@@ -9,7 +9,7 @@ from tensorflow.keras import backend as K
 
 ### Default 64 x 64
 INPUT_DIM = (64,64,3)
-INPUT_DIM = [140,107,3]
+#INPUT_DIM = [140,107,3]
 
 N_LAYERS = 4
 
@@ -24,6 +24,7 @@ CONV_T_FILTERS = [64,64,32,3]
 CONV_T_KERNEL_SIZES = [5,5,6,6]
 CONV_T_STRIDES = [2,2,2,2]
 CONV_T_ACTIVATIONS = ['relu','relu','relu','sigmoid']
+CONV_T_PADDING = [0,0,0,0]
 
 Z_DIM = 32
 
@@ -33,46 +34,48 @@ KL_TOLERANCE = 0.5
 
 
 ## 160 x 90 small
-INPUT_DIM = [160,90,3]
+#INPUT_DIM = [90,160,3]
 
-N_LAYERS = 4
+#N_LAYERS = 4
 
-CONV_FILTERS = [32,64,64, 128]
-CONV_KERNEL_SIZES = [4,4,4,4]
-CONV_STRIDES = [2,2,2,2]
-CONV_ACTIVATIONS = ['relu','relu','relu','relu']
+#CONV_FILTERS = [32,64,64, 128]
+#CONV_KERNEL_SIZES = [4,4,4,4]
+#CONV_STRIDES = [2,2,2,2]
+#CONV_ACTIVATIONS = ['relu','relu','relu','relu']
 
-DENSE_SIZE = 1024
+#DENSE_SIZE = 1024
 
-CONV_T_FILTERS = [64,64,32,3]
-CONV_T_KERNEL_SIZES = [5,5,6,6]
-CONV_T_STRIDES = [2,2,2,2]
-CONV_T_ACTIVATIONS = ['relu','relu','relu','sigmoid']
+#PROBLEM: THIS DECONV STUFF TAKES US TO A PARTICULAR DIMENSION
+#CONV_T_FILTERS = [64,64,32,3]
+#CONV_T_KERNEL_SIZES = [5,5,6,6]
+#CONV_T_STRIDES = [2,2,2,2]
+#CONV_T_ACTIVATIONS = ['relu','relu','relu','sigmoid']
 
-Z_DIM = 32
+#Z_DIM = 32
 
-BATCH_SIZE = 32
-LEARNING_RATE = 0.0001
-KL_TOLERANCE = 0.5
+#BATCH_SIZE = 32
+#LEARNING_RATE = 0.0001
+#KL_TOLERANCE = 0.5
 
-## 160 x 90 deeper
-INPUT_DIM = [160,90,3]
+# 160 x 90 deeper
+#INPUT_DIM = [90,160,3]
 
-N_LAYERS = 5
+#N_LAYERS = 6
 
-CONV_FILTERS = [32,32,64,64, 128]
-CONV_KERNEL_SIZES = [3,3,3,3,3]
-CONV_STRIDES = [2,2,2,2,2]
-CONV_ACTIVATIONS = ['relu','relu','relu','relu','relu']
+#CONV_FILTERS = [32,32,32,64,64, 128]
+#CONV_KERNEL_SIZES = [4,4,4,3,3,3]
+#CONV_STRIDES = [2,2,2,1,1,1]
+#CONV_ACTIVATIONS = ['relu','relu','relu','relu','relu','relu']
 
-DENSE_SIZE = 1024
+#DENSE_SIZE = 1024
 
-CONV_T_FILTERS = [64,64,32,32,3]
-CONV_T_KERNEL_SIZES = [5,5,5,6,6]
-CONV_T_STRIDES = [2,2,2,2,2]
-CONV_T_ACTIVATIONS = ['relu', 'relu','relu','relu','sigmoid']
+#CONV_T_FILTERS = [64,64,32,32,32,3]
+#CONV_T_KERNEL_SIZES = [(2,3),(2,4),(3,4),(4,4),(5,4),(6,6)]
+#CONV_T_STRIDES = [2,2,2,2,2,2]
+#CONV_T_ACTIVATIONS = ['relu','relu', 'relu','relu','relu','sigmoid']
+#CONV_T_PADDING = [0,0,0,0,0,0]
 
-Z_DIM = 64
+#Z_DIM = 32
 
 BATCH_SIZE = 32
 LEARNING_RATE = 0.0001
@@ -143,6 +146,7 @@ class VAE():
         for i in range(N_LAYERS):
             vae_e = Conv2D(filters = CONV_FILTERS[i], kernel_size = CONV_KERNEL_SIZES[i], strides = CONV_STRIDES[i], activation = CONV_ACTIVATIONS[i], name = 'vae_c'+str(i))(vae_e_layers[i])
             vae_e_layers.append(vae_e)
+            #print(vae_e)
 
         vae_z_in = Flatten()(vae_e_layers[-1])
 
@@ -155,11 +159,13 @@ class VAE():
         vae_z_input = Input(shape=(Z_DIM,), name='z_input')
 
         vae_dense = Dense(1024, name='dense_layer')(vae_z_input)
+        #print(vae_dense.shape)
         vae_unflatten = Reshape((1,1,DENSE_SIZE), name='unflatten')(vae_dense)
+        #print(vae_unflatten.shape)
 
         vae_d_layers = [vae_unflatten]
         for i in range(N_LAYERS):
-            vae_d = Conv2DTranspose(filters = CONV_T_FILTERS[i], kernel_size = CONV_T_KERNEL_SIZES[i], strides = CONV_T_STRIDES[i], activation=CONV_T_ACTIVATIONS[i], name='deconv_layer_'+str(i))(vae_d_layers[i])
+            vae_d = Conv2DTranspose(filters = CONV_T_FILTERS[i], kernel_size = CONV_T_KERNEL_SIZES[i], strides = CONV_T_STRIDES[i], activation=CONV_T_ACTIVATIONS[i], output_padding = CONV_T_PADDING[i], name='deconv_layer_'+str(i))(vae_d_layers[i])
             vae_d_layers.append(vae_d)
 
         #### MODELS
@@ -179,7 +185,7 @@ class VAE():
         self.full_model.load_weights(filepath)
 
     def train(self, data):
-
+        #print(data.shape)
         self.full_model.fit(data, data,
                 shuffle=True,
                 epochs=1,

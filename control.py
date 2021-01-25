@@ -11,7 +11,7 @@ import config as c
 
 import matplotlib.image as mpimg
 
-SCREEN_SIZE_X = 64
+SCREEN_SIZE_X = 64 
 SCREEN_SIZE_Y = 64
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -79,7 +79,7 @@ class WorldModel():
                     action = self.get_action(t, env)
 
                 # obs = config.adjust_obs
-                obs = tf.image.resize(obs, [140,107])
+                obs = tf.image.resize(obs, [64,64])
                 #print(obs.shape)
                 #obs = obs.numpy()/255
                 #mpimg.imsave('./data/ims/'+str(t)+".png", obs)
@@ -106,8 +106,8 @@ class WorldModel():
 
             print("Episode {} finished after {} timesteps".format(s, t))
 
-            np.savez_compressed(filename +'_'+str(u), obs=obs_sequence, action=action_sequence,
-                    reward = reward_sequence, done = done_sequence)
+            #np.savez_compressed(filename +'_'+str(u), obs=obs_sequence, action=action_sequence,
+            #reward = reward_sequence, done = done_sequence)
 
             s = s + 1
         env.close()
@@ -137,10 +137,13 @@ class WorldModel():
 ######################################## 02 Train VAE ##########################################
 
 
-    def _02_train_vae(self, new_model = False):
+    def _02_train_vae(self, new_model = False, num_episodes=75, timesteps=250, epochs = 1):
         vae = self.load_vae(new_model)
-        
+        M = timesteps
+        N = num_episodes
         data, N = self.import_data(N,M)
+        print(vae.encoder.summary())
+        print(vae.decoder.summary())
         for epoch in range(epochs):
             print('EPOCH', str(epoch))
             vae.save_weights('./VAE/weights/' + self.name +'.h5')
@@ -158,7 +161,7 @@ class WorldModel():
 
     def import_data(self, n_files, M):
         rollout_path = self.path + '/rollouts/'
-        filelist = os.listdir()
+        filelist = os.listdir(rollout_path)
         filelist = [x for x in filelist if x != '.DS_Store']
         filelist.sort()
         length_filelist = len(filelist)
@@ -169,31 +172,34 @@ class WorldModel():
 
         if length_filelist < n_files:
             n_files = length_filelist
-
-        data = np.zeros((M*n_files, SCREEN_SIZE_X, SCREEN_SIZE_Y, 3), dtype=np.float32)
+        data = np.zeros((M*n_files, SCREEN_SIZE_Y, SCREEN_SIZE_X, 3), dtype=np.float32)
         idx = 0
         file_count = 0
 
+        DIR_NAME = rollout_path
 
         for file in filelist:
             try:
                 new_data = np.load(DIR_NAME + file)['obs']
                 #new_data = tf.image.resize(new_data, [64,64])
                 #resizing should happen when recordin data
+                print(new_data.shape)
                 data[idx:(idx + M), :, :, :] = new_data
 
                 idx = idx + M
                 file_count += 1
 
                 if file_count%50==0:
-                    print('Imported {} / {} ::: Current data size = {} observations'.format(file_count, N, idx))
+                    print('Imported {} / {} ::: Current data size = {} observations'.format(file_count, n_files, idx))
             except Exception as e:
+                raise
                 print(e)
                 print('Skipped {}...'.format(file))
 
-        print('Imported {} / {} ::: Current data size = {} observations'.format(file_count, N, idx))
 
-        return data, N
+        print('Imported {} / {} ::: Current data size = {} observations'.format(file_count, n_files, idx))
+
+        return data, n_files
 
 
 

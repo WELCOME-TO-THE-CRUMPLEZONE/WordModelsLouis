@@ -174,7 +174,7 @@ The Vision component is comprised of an variational autoencoder.
 It takes in an image observation $o$ and gives a much smaller vector $z$, known as the \textit{latent representation}, which we can think of as a compressed version of $o$.
 The idea behind this compression is that it will be easier to learn an internal model of the dynamics of this smaller latent state than to try predict the evolution of the observation images. 
 The Memory component is a Mixture Density Reccurrent Neural Net (MDRNN) and forms the bulk of agent's internal model.
-Given the current latent state $z_t$, an action $a_t$, and its own memory output $h_{t}$ from the previous state, $M$ is trained to predict what the next latent state $z_{t+1}$ will be given that action.
+Given the current latent state $z_t$, an action $a_t$, and its own memory output $h_{t}$ from the previous state, $M$ is trained to predict the distribution of the next latent state $z_{t+1}$ will be given that action.
 That is, $M$ learns the distribution $p(z_{t+1} | z_t, a_t, h_t)$.
 Finally, the Controller learns a simple linear mapping from the latent state $z$ and previous memory state $h$ to an action. 
 
@@ -342,11 +342,144 @@ The Vision component manages to compress each observation into 32 dimensional la
 \subsection{Autoencoders}
 Autoencoders allow us to learn more efficient representations of data.
 One way to think of them is as learning a lossy compression algorithm which is heuristically tailored torwards the data it has been trained on.
-The idea 
+Autoencoders consist of two separate models: an encoder and a decoder.
+The encoder is a neural net which takes in a high dimensional input $x$, such as an image, and returns a lower dimensional vector $z$ which is supposed to summarise the information contained in $x$.
+The decoder takes this smaller vector $z$ as input and returns $\widetilde{x}$, an approximate reconstruction of $x$.
+The combined Encoder-Decoder network is trained simultaneously by gradient descent with backpropagation.
+The loss function used is typically a measure of similarity between $x$ and $\widetilde{x}$, such as least squares.
+Since the prediction compared to in the loss function is just the original input $x$ autoencoders are able to learn efficient representations in a completely unsupervised manner.
+
+\begin{figure}[h]
+  \centering
 
 
+\tikzset{every picture/.style={line width=0.75pt}} %set default line width to 0.75pt        
+
+\begin{tikzpicture}[x=0.75pt,y=0.75pt,yscale=-1,xscale=1]
+%uncomment if require: \path (0,300); %set diagram left start at 0, and has height of 300
+
+%Shape: Trapezoid [id:dp8541203132727615] 
+\draw   (151,77) -- (215.5,106.73) -- (215.5,132.14) -- (151,161.88) -- cycle ;
+%Shape: Trapezoid [id:dp018706469204115228] 
+\draw   (314.5,161.88) -- (250,132.14) -- (250,106.73) -- (314.5,77) -- cycle ;
+%Straight Lines [id:da8293223382895447] 
+\draw    (215.5,118.43) -- (245.5,118.43) ;
+\draw [shift={(247.5,118.43)}, rotate = 180] [color={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.75]    (10.93,-3.29) .. controls (6.95,-1.4) and (3.31,-0.3) .. (0,0) .. controls (3.31,0.3) and (6.95,1.4) .. (10.93,3.29)   ;
+%Straight Lines [id:da18164573910193638] 
+\draw    (112,119) -- (147.5,119) ;
+\draw [shift={(149.5,119)}, rotate = 180] [color={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.75]    (10.93,-3.29) .. controls (6.95,-1.4) and (3.31,-0.3) .. (0,0) .. controls (3.31,0.3) and (6.95,1.4) .. (10.93,3.29)   ;
+%Straight Lines [id:da12573110589897274] 
+\draw    (314,117) -- (352.5,117) ;
+\draw [shift={(354.5,117)}, rotate = 180] [color={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.75]    (10.93,-3.29) .. controls (6.95,-1.4) and (3.31,-0.3) .. (0,0) .. controls (3.31,0.3) and (6.95,1.4) .. (10.93,3.29)   ;
+
+% Text Node
+\draw (154,112) node [anchor=north west][inner sep=0.75pt]   [align=left] {Encoder};
+% Text Node
+\draw (118,95) node [anchor=north west][inner sep=0.75pt]   [align=left] {$\displaystyle x$};
+% Text Node
+\draw (225,97) node [anchor=north west][inner sep=0.75pt]   [align=left] {$\displaystyle z$};
+% Text Node
+\draw (252,109.73) node [anchor=north west][inner sep=0.75pt]   [align=left] {Decoder};
+% Text Node
+\draw (330,89) node [anchor=north west][inner sep=0.75pt]   [align=left] {$\displaystyle \widetilde{x}$};
+
+
+\end{tikzpicture}
+\caption{An autoencoder}
+\end{figure}
+
+Network architecture for the Encoder and Decoder can vary wildly depending on the area of application.
+In image processing it is standard practice to use 2D convolutional layers rather than fully connected dense layers.
+These convolutional layers vastly reduce the number of weights needed, making training feasible in cases where a fully connected network would struggle.
+They do this be reusing weights on the principle that we are interested in common features of images, such as edges and colour gradients, rather than features localised to specific pixels.
+Convolutional layers consist of many filter channels.
+Each filter channel is computed by dragging a matrix of numbers known as a \textit{kernel} across the image and taking its dot product with the image at the different points.
+Strictly the kernels are actually 3 dimensional matrices to account for the fact that our images and hidden cells have multiple channels.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[scale=0.4]{2conv.png}
+  \caption{A $3 \times 3$ kernel (shaded) is convolved over a $5 \times 5$ image (lower) which has been padded with zeros to a $7 \times 7$ matrix. The resulting output is also a $5 \times 5$ matrix.}
+\end{figure}%CITEME towardsdatascience
+
+A question one might be tempted to ask is what happens if we apply take the Decoder and apply it to a $z$ which has been randomly generated rather than coming via the Encoder.
+We might hope that the image reconstructed by the Decoder resembles images from our original dataset.
+If this were the case then we would be able to generate new images with this technique.
+Unfortunately there is nothing to really guarantee this works.
+If we think of our dataset as following some distribution $p(x)$ then there is not much we can say about the distribution of latent variables $p(z)$, and thus we cannot hope to directly sample a $z$ from this distribution, meaning we cannot sample a $z$ which might give a realistic $\widetilde{x}$.
+Variational autoencoders are essentially designed to tackle this exact problem.
+
+%TODO image pokemon?
 
 \subsection{Variational Autoencoders}
+
+Variational autoencoders consist of a convolutional Encoder and Decoder and work on a similar principle to normal autoencoders.
+The encoder again takes in a high dimensional input $x$ such as an image.
+However, instead of outputting a vector encoding $z$ the Encoder learns to output a distribution $p(z)$ of encodings representing $x$.
+We require that $p(z)$ is a normal distribution with diagonal covariance so that the encoder actually outputs a vector twice the dimension of $z$, whose components represent the mean covariance of $p(z)$.
+We then sample a $z$ from this distribution and give this to the Decoder which decodes as normal to produce a reconstruction $\widetilde{x}$.
+This added element of randomness is useful for reasons we will discuss shortly.
+
+\begin{figure}[h]
+  \centering
+
+
+  \tikzset{every picture/.style={line width=0.75pt}} %set default line width to 0.75pt        
+
+  \begin{tikzpicture}[x=0.75pt,y=0.75pt,yscale=-1,xscale=1]
+  %uncomment if require: \path (0,300); %set diagram left start at 0, and has height of 300
+  
+  %Shape: Trapezoid [id:dp8541203132727615] 
+  \draw   (151,77) -- (215.5,106.73) -- (215.5,132.14) -- (151,161.88) -- cycle ;
+  %Shape: Trapezoid [id:dp018706469204115228] 
+  \draw   (442.5,160.88) -- (378,131.14) -- (378,105.73) -- (442.5,76) -- cycle ;
+  %Straight Lines [id:da8293223382895447] 
+  \draw    (215.5,118.43) -- (259.5,118.43) ;
+  \draw [shift={(261.5,118.43)}, rotate = 180] [color={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.75]    (10.93,-3.29) .. controls (6.95,-1.4) and (3.31,-0.3) .. (0,0) .. controls (3.31,0.3) and (6.95,1.4) .. (10.93,3.29)   ;
+  %Straight Lines [id:da18164573910193638] 
+  \draw    (112,119) -- (147.5,119) ;
+  \draw [shift={(149.5,119)}, rotate = 180] [color={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.75]    (10.93,-3.29) .. controls (6.95,-1.4) and (3.31,-0.3) .. (0,0) .. controls (3.31,0.3) and (6.95,1.4) .. (10.93,3.29)   ;
+  %Straight Lines [id:da12573110589897274] 
+  \draw    (336,118) -- (374.5,118) ;
+  \draw [shift={(376.5,118)}, rotate = 180] [color={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.75]    (10.93,-3.29) .. controls (6.95,-1.4) and (3.31,-0.3) .. (0,0) .. controls (3.31,0.3) and (6.95,1.4) .. (10.93,3.29)   ;
+  %Shape: Rectangle [id:dp9631400703948827] 
+  \draw   (264,104.43) -- (334,104.43) -- (334,134) -- (264,134) -- cycle ;
+  %Straight Lines [id:da9905140662945862] 
+  \draw    (442.5,115.43) -- (473.5,115.43) ;
+  \draw [shift={(475.5,115.43)}, rotate = 180] [color={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.75]    (10.93,-3.29) .. controls (6.95,-1.4) and (3.31,-0.3) .. (0,0) .. controls (3.31,0.3) and (6.95,1.4) .. (10.93,3.29)   ;
+  
+  % Text Node
+  \draw (154,112) node [anchor=north west][inner sep=0.75pt]   [align=left] {Encoder};
+  % Text Node
+  \draw (118,95) node [anchor=north west][inner sep=0.75pt]   [align=left] {$\displaystyle x$};
+  % Text Node
+  \draw (223,90) node [anchor=north west][inner sep=0.75pt]   [align=left] {$\displaystyle p( z)$};
+  % Text Node
+  \draw (380,108.73) node [anchor=north west][inner sep=0.75pt]   [align=left] {Decoder};
+  % Text Node
+  \draw (456,85) node [anchor=north west][inner sep=0.75pt]   [align=left] {$\displaystyle \tilde{x}$};
+  % Text Node
+  \draw (273,111) node [anchor=north west][inner sep=0.75pt]   [align=left] {Sample};
+  % Text Node
+  \draw (348,96) node [anchor=north west][inner sep=0.75pt]   [align=left] {$\displaystyle z$};
+  
+  
+  \end{tikzpicture}
+  \caption{A variational autoencoder}
+\end{figure}
+
+We would like to train the variational autoencoder the same way we train traditional autoencoders, using backpropagation to compute the gradient of a loss function.
+However, we cannot do this directly since there is no way to take derivatives through the random sampling process.
+We get around this issue with a little trick.
+Any time a datapoint is seen during training we sample an $\epsilon$ from the unit variance, zero mean gaussian with dimension the same as $z$.
+Given output vectors $\mu$ and $\sigma$ from the Encoder representing the mean and covariance of $p(z)$ respectively, we find that $z = \mu + \sigma \odot \epsilon$ is distributed according to $p(z)$.
+Then for each individual datapoint we treat its sampled $\epsilon$ as a constant so that $z$ is just a function of the original input and the Encoder's weights.
+This allows us to give the resulting $z$ to the Decoder and compute the gradient of the resulting loss function via backpropagation.
+%one of which is that it allows us control over the distribution of latent vector 
+
+If we used the same loss function as a traditional autoencoder then the network would simply learn to reduce the covariance of $p(z)$ in order to reduce noise in its latent representations.
+Thus we introduce a term to the loss function which constrains the form of $p(z)$.
+Ultimately we are interested in being able to sample realistic latent variables, and we make the arbitrary choice that we want to be able to do this simply by sampling from the zero mean unit covariance normal distribution, so we penalise $p(z)$ the further from this distribution it is.
 
 
 
