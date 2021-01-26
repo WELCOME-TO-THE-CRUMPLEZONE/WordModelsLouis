@@ -11,8 +11,8 @@ import config as c
 
 import matplotlib.image as mpimg
 
-SCREEN_SIZE_X = 64 
-SCREEN_SIZE_Y = 64
+SCREEN_SIZE_X = 160
+SCREEN_SIZE_Y = 90
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -79,7 +79,9 @@ class WorldModel():
                     action = self.get_action(t, env)
 
                 # obs = config.adjust_obs
-                obs = tf.image.resize(obs, [64,64])
+                obs = obs/255
+                obs = tf.image.resize(obs, [160,90])
+                #print(obs)
                 #print(obs.shape)
                 #obs = obs.numpy()/255
                 #mpimg.imsave('./data/ims/'+str(t)+".png", obs)
@@ -137,41 +139,48 @@ class WorldModel():
 ######################################## 02 Train VAE ##########################################
 
 
-    def _02_train_vae(self, new_model = False, num_episodes=75, timesteps=250, epochs = 1):
+    def _02_train_vae(self, new_model = False, num_episodes=73, timesteps=25, epochs = 1):
         vae = self.load_vae(new_model)
         M = timesteps
         N = num_episodes
         data, N = self.import_data(N,M)
-        print(vae.encoder.summary())
-        print(vae.decoder.summary())
+        print(data.shape)
+        #print(vae.encoder.summary())
+        #print(vae.decoder.summary())
         for epoch in range(epochs):
             print('EPOCH', str(epoch))
-            vae.save_weights('./VAE/weights/' + self.name +'.h5')
-            vae.train(data)
-        vae.save_weights('./VAE/weights/' + self.name +'.h5')
+            vae.save_weights('./VAE/weights/' + self.name +'.ckpt')
+            vae.train(data, epochs = 1)
+        vae.save_weights('./VAE/weights/' + self.name +'.ckpt')
 
     def load_vae(self, new_model):
         if self.vae != None:
             return self.vae
         vae = VAE.VAE()
         if not new_model:
-            vae.set_weights('./VAE/weights/' + self.name +'.h5')
+            vae.set_weights('./VAE/weights/' + self.name +'.ckpt')
+            print("Set weights successfully")
         self.vae = vae
         return vae
 
-    def import_data(self, n_files, M):
-        rollout_path = self.path + '/rollouts/'
+    def get_filelist(n_files, rollout_path):
         filelist = os.listdir(rollout_path)
         filelist = [x for x in filelist if x != '.DS_Store']
         filelist.sort()
         length_filelist = len(filelist)
-
 
         if length_filelist > n_files:
             filelist = filelist[:n_files]
 
         if length_filelist < n_files:
             n_files = length_filelist
+        return filelist, n_files
+
+
+    def import_data(self, n_files, M):
+        rollout_path = self.path + '/rollouts/'
+        filelist, n_files = get_filelist(n_files, rollout_path)
+
         data = np.zeros((M*n_files, SCREEN_SIZE_Y, SCREEN_SIZE_X, 3), dtype=np.float32)
         idx = 0
         file_count = 0
@@ -180,12 +189,12 @@ class WorldModel():
 
         for file in filelist:
             try:
-                new_data = np.load(DIR_NAME + file)['obs']
+                new_data = np.load(DIR_NAME + file)['obs']/255
+                print(new_data.shape)
                 #new_data = tf.image.resize(new_data, [64,64])
                 #resizing should happen when recordin data
-                print(new_data.shape)
+                #print(new_data.shape)
                 data[idx:(idx + M), :, :, :] = new_data
-
                 idx = idx + M
                 file_count += 1
 
@@ -201,15 +210,106 @@ class WorldModel():
 
         return data, n_files
 
+    def gen_vae_comparison_ims(self, n):
+        data, n = self.import_data(n, 25)
+        print(data.shape)
+        vae = self.load_vae(False)
+        recon = vae.full_model.predict(data)
+        recon_path = self.path + '/recon/'
+
+        if os.path.exists(recon_path):
+            print("Using existing directory: " + recon_path)
+        else:
+            os.mkdir(recon_path)
+            print('Made new directory: ' + recon_path)
+
+        for i in range(n*25):
+            mpimg.imsave(recon_path+'obs_' +str(i)+".png", data[i])
+            mpimg.imsave(recon_path+'recon_'+str(i)+".png", recon[i])
 
 
+    def gen_random_ims(self, n):
+        vae = self.load_vae(False)
+        im_path = self.path + '/new_ims/'
+        
+        if os.path.exists(im_path):
+            print("Using existing directory: " + im_path)
+        else:
+            os.mkdir(im_path)
+            print('Made new directory: ' + im_path)
+        
+        z = tf.random.normal([n,32])
+        gen = vae.decoder.predict(z)
+        for i in range(n):
+            mpimg.imsave(im_path + str(i) + '.png', gen[i])
+
+#########################################################################################33
 
 
-    def _03_generate_vae_rollouts(self):
-        pass
+    def _03_generate_vae_rollouts(self, n_files = 73):
+        vae_rollout_path = self.path+'/vae_rollouts/'
+        if os.path.exists(vae_rollout_path):
+            print("Using existing directory: " + vae_rollout_path)
+        else:
+            os.mkdir(vae_rollout_path)
+            print('Made new directory: ' + vae_rollout_path)
+        rollout_path = self.path + '/rollouts/'
+        
+        filelist, n_files = WorldModel.get_filelist(n_files, rollout_path)
 
-    def _04_train_mdrnn(self, restart = False):
-        pass
+        vae = self.load_vae(False)
+
+        file_count = 0
+        for file in filelist:
+            try:
+                data = np.load(rollout_path + file)
+                obs = data['obs']
+                mu, log_var, _ = vae.encoder.predict(obs)
+                # We save the mu and log_var so in MDRNN training we can generate a new z each time
+                np.savez_compressed(vae_rollout_path  + file, mu=mu, log_var=log_var)
+                
+                file_count += 1
+
+                if file_count % 20 == 0: 
+                    print('Encoded {} / {} episodes'.format(file_count, n_files))
+            except Exception as e:
+                print(e)
+                print('Skipped {}...'.format(file))
+        print('Encoded {} / {} episodes'.format(file_count, n_files))
+
+#################################################################################################
+
+    def _04_train_mdrnn(self, restart = False, N=73, batch_size = 20):
+
+        vae_rollout_path = self.path+'/vae_rollouts/'
+        mdrnn = MDRNN.MDRNN(IN_DIM, OUT_DIM, LSTM_UNITS, N_MIXES)
+
+        if not new_model:
+            try:
+                mdrnn.set_weights('./MDRNN/weights.h5')
+            except:
+                print("Either set --new_model or ensure ./MDRNN/weights.h5 exists")
+                raise
+
+    filelist, N = get_filelist(N)
+
+    for step in range(steps):
+        print('STEP' + str(step))
+
+        z, action, rew, done = random_batch(filelist, batch_size)
+        rnn_in = np.concatenate([z[:, :-1, :], action[:, :-1, :]], axis = 2)
+        rnn_out = z[:, 1:, :]
+
+        mdrnn.train(rnn_in, rnn_out)
+
+        if step % 10 == 0:
+            mdrnn.model.save_weights('./MDRNN/weights.h5')
+            print("Saved weights")
+
+    mdrnn.model.save_weights('./MDRNN/weights.h5')
+    print("Saved weights")
+
+    def load_mdrnn(self)
 
     def _05_play_dream(self):
         pass

@@ -469,7 +469,7 @@ This added element of randomness is useful for reasons we will discuss shortly.
 \end{figure}
 
 We would like to train the variational autoencoder the same way we train traditional autoencoders, using backpropagation to compute the gradient of a loss function.
-However, we cannot do this directly since there is no way to take derivatives through the random sampling process.
+However, we cannot do this directly since there is no way to evaluate gradients through the random sampling process.
 We get around this issue with a little trick.
 Any time a datapoint is seen during training we sample an $\epsilon$ from the unit variance, zero mean gaussian with dimension the same as $z$.
 Given output vectors $\mu$ and $\sigma$ from the Encoder representing the mean and covariance of $p(z)$ respectively, we find that $z = \mu + \sigma \odot \epsilon$ is distributed according to $p(z)$.
@@ -480,14 +480,109 @@ This allows us to give the resulting $z$ to the Decoder and compute the gradient
 If we used the same loss function as a traditional autoencoder then the network would simply learn to reduce the covariance of $p(z)$ in order to reduce noise in its latent representations.
 Thus we introduce a term to the loss function which constrains the form of $p(z)$.
 Ultimately we are interested in being able to sample realistic latent variables, and we make the arbitrary choice that we want to be able to do this simply by sampling from the zero mean unit covariance normal distribution, so we penalise $p(z)$ the further from this distribution it is.
+%TODO KL loss
 
-
-
-\section{M}
-
-\subsection{Mixture Density Nets}
+\section{Memory}
+The Memory component $M$ of World Models forms the bulk of the agent's internal model.
+It is trained to learn the probability distribution $p(z_{t+1} | z_t, a_t, h_t)$ which when combined with the Vision component can be used to produce interactive dreams of the agent's environment.
+The agent is able to harness this predictive ability by accessing via an internal memory state $h$ of $M$ that is one of the features given to the Controller $C$.
+The architecture of $M$ is a neural network known as a Mixture Density Reccurrent Neural Network.
+This has two components: the input LSTM layer which provides the memory functionality and the output Mixture Density layer which allows the network to output a probability distribution. 
+%TODO model picture
 
 \subsection{Long Short Term Memory}
+
+\subsection{Mixture Density Nets}
+A mixture density net (MDN) is a type of feedforward neural net, categorised by its output layer and loss function, that learns probability distributions.
+That is, given an input vector $x$, rather than returning a prediction $z$ an MDN returns a distribution of predictions $p(z)$.
+This is useful for learning to fit data where an input $x$ might correspond to a wide range of target $z$, for example data coming from multivalued functions.
+The idea is in principle similar to the encoder in a VAE in that we restrict our attention to a parameterised family of distributions and the neural network learns to output these parameters.
+The family we choose is what is known as a \textit{mixture distribution} and consists of a weighted sum or ``mixture'' of a fixed number $K$ of parameterised distributions (``mixture components'').
+Most commonly (and in World Models) mixture components are Gaussians with diagonal covariance matrices, thus the MDN learns a distribution
+$$p(z) = \sum_{k=1}^K \pi_k \mathcal{N}\left(z|\mu_k, \Sigma_k\right)$$
+with mixture weights $\pi_k$, means $\mu_k$ and covariances $\Sigma_k$.
+Note that we must have $\sum_{k=1}^K \pi_k = 1$ for this distribution to correctly integrate to one.
+
+%MDNs are trained by to minimise the average 
+
+The functional form of a mixture distribution has several advantages.
+There is a relatively large degree of flexibility in the distributions that can be learned.
+The use of multiple mixtures allows the learning of multimodal or skewed distributions which would not be possible with a single Gaussian.
+We are also able to easily sample from mixture distributions with a small trick.
+Rather than directly sampling from $p(z)$, we first choose randomly choose one of the $K$ components, denoting our choice as $m$, so that the probability of choosing component $k$ is $p(m=k) =\pi_k$.
+Then we sample\footnote{See Bishop for an explanation of how to sample from a Gaussian.} $z$ from the corresponding component with probability $\mathcal{N}(z| \mu_m, \Sigma_m)$. %CITEME
+Effectively we have sampled from a joint distribution $p(m,z)$ and we can marginalise out $m$ to see that our sampled $z$ is sampled according to the desired distribution
+$$p(z) = \sum_{m=1}^K p(m,z) = \sum_{m=1}^K p(m)p(z|m) = \sum_{k=1}^K \pi_m \mathcal{N}\left(z|\mu_m, \Sigma_m\right)$$
+This ability to sample from $p(z)$ is useful for making predictions and we shall see that this is what allows World Models to generate dreams.
+
+MDNs are trained by via backpropagation to minimise the average negative log likelihood of the training data
+$$L(\mathbb{D}) = -\frac1{|\mathbb{D}|} \sum_{(x,z) \in \mathbb{D}} \log p (z|x)$$
+where $p(z|x)$ is the function of $z$ given by the MDN with input $x$.
+This is equivalent to maximising the average likelihood but simplifies gradient calculations.
+
+MDNs may have very different hidden layer architectures so it is often more helpful to speak of a \textit{mixture density layer} which refers to both the final dense layer and loss function.
+Activation functions in this output layer are chosen to ensure the output $\pi$, $\mu$ and $\Sigma$ describe valid probability distributions.
+Typically this involves using a softmax activation for the $\pi_k$ to ensure they sum to one, and strictly positive activation such as ELU+1 for the components of each $\Sigma_k$ to ensure each $\Sigma_k$ is positive definite.
+
+\subsection{Mixture Density Recurrent Neural Nets}
+
+\begin{figure}
+  \centering
+
+
+\tikzset{every picture/.style={line width=0.75pt}} %set default line width to 0.75pt        
+
+\begin{tikzpicture}[x=0.75pt,y=0.75pt,yscale=-1,xscale=1]
+%uncomment if require: \path (0,300); %set diagram left start at 0, and has height of 300
+
+%Shape: Circle [id:dp2684613103597593] 
+\draw   (88,112.25) .. controls (88,103.83) and (94.83,97) .. (103.25,97) .. controls (111.67,97) and (118.5,103.83) .. (118.5,112.25) .. controls (118.5,120.67) and (111.67,127.5) .. (103.25,127.5) .. controls (94.83,127.5) and (88,120.67) .. (88,112.25) -- cycle ;
+%Shape: Circle [id:dp7515334993320522] 
+\draw   (87,179.25) .. controls (87,170.83) and (93.83,164) .. (102.25,164) .. controls (110.67,164) and (117.5,170.83) .. (117.5,179.25) .. controls (117.5,187.67) and (110.67,194.5) .. (102.25,194.5) .. controls (93.83,194.5) and (87,187.67) .. (87,179.25) -- cycle ;
+%Shape: Circle [id:dp3956810510931634] 
+\draw   (171,102.25) .. controls (171,93.83) and (177.83,87) .. (186.25,87) .. controls (194.67,87) and (201.5,93.83) .. (201.5,102.25) .. controls (201.5,110.67) and (194.67,117.5) .. (186.25,117.5) .. controls (177.83,117.5) and (171,110.67) .. (171,102.25) -- cycle ;
+%Shape: Circle [id:dp19016463396194694] 
+\draw   (171,145.25) .. controls (171,136.83) and (177.83,130) .. (186.25,130) .. controls (194.67,130) and (201.5,136.83) .. (201.5,145.25) .. controls (201.5,153.67) and (194.67,160.5) .. (186.25,160.5) .. controls (177.83,160.5) and (171,153.67) .. (171,145.25) -- cycle ;
+%Shape: Circle [id:dp22276868355052848] 
+\draw   (172,191.25) .. controls (172,182.83) and (178.83,176) .. (187.25,176) .. controls (195.67,176) and (202.5,182.83) .. (202.5,191.25) .. controls (202.5,199.67) and (195.67,206.5) .. (187.25,206.5) .. controls (178.83,206.5) and (172,199.67) .. (172,191.25) -- cycle ;
+%Straight Lines [id:da20531398432018322] 
+\draw    (118.5,112.25) -- (171,102.25) ;
+%Straight Lines [id:da5015846339156749] 
+\draw    (118.5,112.25) -- (171,145.25) ;
+%Straight Lines [id:da38303527040684293] 
+\draw    (118.5,112.25) -- (172,191.25) ;
+%Straight Lines [id:da4507480129941899] 
+\draw    (117.5,179.25) -- (171,102.25) ;
+%Straight Lines [id:da05738820526860411] 
+\draw    (117.5,179.25) -- (171,145.25) ;
+%Straight Lines [id:da686450750606536] 
+\draw    (117.5,179.25) -- (172,191.25) ;
+%Straight Lines [id:da31471436513544004] 
+\draw  [dash pattern={on 4.5pt off 4.5pt}]  (110.5,144.43) -- (171,102.25) ;
+%Straight Lines [id:da4379798871611733] 
+\draw  [dash pattern={on 4.5pt off 4.5pt}]  (110.5,144.43) -- (171,145.25) ;
+%Straight Lines [id:da5452061589510788] 
+\draw  [dash pattern={on 4.5pt off 4.5pt}]  (110.5,144.43) -- (172,191.25) ;
+
+% Text Node
+\draw (95,135.4) node [anchor=north west][inner sep=0.75pt]    {$\vdots $};
+% Text Node
+\draw (180,91) node [anchor=north west][inner sep=0.75pt]   [align=left] {$\displaystyle \mathbf{\pi }$};
+% Text Node
+\draw (180,136.4) node [anchor=north west][inner sep=0.75pt]    {$\mathbf{\mu }$};
+% Text Node
+\draw (180,182.4) node [anchor=north west][inner sep=0.75pt]    {$\mathbf{\Sigma }$};
+% Text Node
+\draw (212,138.4) node [anchor=north west][inner sep=0.75pt]    {$Kd$};
+% Text Node
+\draw (212,183.4) node [anchor=north west][inner sep=0.75pt]    {$Kd$};
+% Text Node
+\draw (213,93.4) node [anchor=north west][inner sep=0.75pt]    {$K$};
+
+
+\end{tikzpicture}
+\caption{A mixture density output layer. }
+\end{figure}
 
 \section{C}
 

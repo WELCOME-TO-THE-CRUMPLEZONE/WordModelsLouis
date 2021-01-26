@@ -58,26 +58,26 @@ KL_TOLERANCE = 0.5
 #KL_TOLERANCE = 0.5
 
 # 160 x 90 deeper
-#INPUT_DIM = [90,160,3]
+INPUT_DIM = [90,160,3]
 
-#N_LAYERS = 6
+N_LAYERS = 6
 
-#CONV_FILTERS = [32,32,32,64,64, 128]
-#CONV_KERNEL_SIZES = [4,4,4,3,3,3]
-#CONV_STRIDES = [2,2,2,1,1,1]
-#CONV_ACTIVATIONS = ['relu','relu','relu','relu','relu','relu']
+CONV_FILTERS = [32,32,32,64,64, 128]
+CONV_KERNEL_SIZES = [4,4,4,3,3,3]
+CONV_STRIDES = [2,2,2,1,1,1]
+CONV_ACTIVATIONS = ['relu','relu','relu','relu','relu','relu']
 
-#DENSE_SIZE = 1024
+DENSE_SIZE = 1024
 
-#CONV_T_FILTERS = [64,64,32,32,32,3]
-#CONV_T_KERNEL_SIZES = [(2,3),(2,4),(3,4),(4,4),(5,4),(6,6)]
-#CONV_T_STRIDES = [2,2,2,2,2,2]
-#CONV_T_ACTIVATIONS = ['relu','relu', 'relu','relu','relu','sigmoid']
-#CONV_T_PADDING = [0,0,0,0,0,0]
+CONV_T_FILTERS = [64,64,32,32,32,3]
+CONV_T_KERNEL_SIZES = [(2,3),(2,4),(3,4),(4,4),(5,4),(6,6)]
+CONV_T_STRIDES = [2,2,2,2,2,2]
+CONV_T_ACTIVATIONS = ['relu','relu', 'relu','relu','relu','sigmoid']
+CONV_T_PADDING = [0,0,0,0,0,0]
 
-#Z_DIM = 32
+Z_DIM = 32
 
-BATCH_SIZE = 32
+BATCH_SIZE = 8
 LEARNING_RATE = 0.0001
 KL_TOLERANCE = 0.5
 
@@ -102,7 +102,9 @@ class VAEModel(Model):
             data = data[0]
         with tf.GradientTape() as tape:
             z_mean, z_log_var, z = self.encoder(data)
+            #print(z_mean, z_log_var, z)
             reconstruction = self.decoder(z)
+            #print(reconstruction)
             reconstruction_loss = tf.reduce_mean(
                 tf.square(data - reconstruction), axis = [1,2,3]
             )
@@ -121,7 +123,9 @@ class VAEModel(Model):
     
     def call(self,inputs):
         latent = self.encoder(inputs)
-        return self.decoder(latent)
+        print('---------------------------')
+        print(latent)
+        return self.decoder(latent[2])
 
 
 
@@ -184,11 +188,11 @@ class VAE():
     def set_weights(self, filepath):
         self.full_model.load_weights(filepath)
 
-    def train(self, data):
+    def train(self, data, epochs = 1):
         #print(data.shape)
         self.full_model.fit(data, data,
                 shuffle=True,
-                epochs=1,
+                epochs=epochs,
                 batch_size=BATCH_SIZE)
         
     def save_weights(self, filepath):
