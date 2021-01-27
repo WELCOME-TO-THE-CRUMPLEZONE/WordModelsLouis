@@ -341,13 +341,14 @@ The Vision component manages to compress each observation into 32 dimensional la
 
 \subsection{Autoencoders}
 Autoencoders allow us to learn more efficient representations of data.
-One way to think of them is as learning a lossy compression algorithm which is heuristically tailored torwards the data it has been trained on.
-Autoencoders consist of two separate models: an encoder and a decoder.
+One way to think of them\footnote{Autoencoders actually have a variety of other applications such as image infilling, image segmentation, and denoising, but we will not discuss these here.} is as learning a lossy compression algorithm which is heuristically tailored torwards the data it has been trained on.
+Autoencoders consist of two separate models: an encoder and a decoder. %CITEME image infilling, image segmentation, and denoising
 The encoder is a neural net which takes in a high dimensional input $x$, such as an image, and returns a lower dimensional vector $z$ which is supposed to summarise the information contained in $x$.
 The decoder takes this smaller vector $z$ as input and returns $\widetilde{x}$, an approximate reconstruction of $x$.
 The combined Encoder-Decoder network is trained simultaneously by gradient descent with backpropagation.
-The loss function used is typically a measure of similarity between $x$ and $\widetilde{x}$, such as least squares.
+The loss function used is known as a \textit{reconstruction loss} and is typically a measure of similarity between $x$ and $\widetilde{x}$, such as least squares.
 Since the prediction compared to in the loss function is just the original input $x$ autoencoders are able to learn efficient representations in a completely unsupervised manner.
+
 
 \begin{figure}[h]
   \centering
@@ -415,8 +416,8 @@ Variational autoencoders are essentially designed to tackle this exact problem.
 
 Variational autoencoders consist of a convolutional Encoder and Decoder and work on a similar principle to normal autoencoders.
 The encoder again takes in a high dimensional input $x$ such as an image.
-However, instead of outputting a vector encoding $z$ the Encoder learns to output a distribution $p(z)$ of encodings representing $x$.
-We require that $p(z)$ is a normal distribution with diagonal covariance so that the encoder actually outputs a vector twice the dimension of $z$, whose components represent the mean covariance of $p(z)$.
+However, instead of outputting a vector encoding $z$ the Encoder learns to output a distribution $q(z|x)$ of encodings representing $x$.
+We require that $q(z|x)$ is a normal distribution with diagonal covariance so that the encoder actually outputs a vector twice the dimension of $z$, whose components represent the mean and covariance of $q(z|x)$.
 We then sample a $z$ from this distribution and give this to the Decoder which decodes as normal to produce a reconstruction $\widetilde{x}$.
 This added element of randomness is useful for reasons we will discuss shortly.
 
@@ -453,7 +454,7 @@ This added element of randomness is useful for reasons we will discuss shortly.
   % Text Node
   \draw (118,95) node [anchor=north west][inner sep=0.75pt]   [align=left] {$\displaystyle x$};
   % Text Node
-  \draw (223,90) node [anchor=north west][inner sep=0.75pt]   [align=left] {$\displaystyle p( z)$};
+  \draw (223,90) node [anchor=north west][inner sep=0.75pt]   [align=left] {$\displaystyle q(z|x)$};
   % Text Node
   \draw (380,108.73) node [anchor=north west][inner sep=0.75pt]   [align=left] {Decoder};
   % Text Node
@@ -470,17 +471,121 @@ This added element of randomness is useful for reasons we will discuss shortly.
 
 We would like to train the variational autoencoder the same way we train traditional autoencoders, using backpropagation to compute the gradient of a loss function.
 However, we cannot do this directly since there is no way to evaluate gradients through the random sampling process.
-We get around this issue with a little trick.
+We get around this issue with something known as the ``reparamaterisation trick''.
 Any time a datapoint is seen during training we sample an $\epsilon$ from the unit variance, zero mean gaussian with dimension the same as $z$.
-Given output vectors $\mu$ and $\sigma$ from the Encoder representing the mean and covariance of $p(z)$ respectively, we find that $z = \mu + \sigma \odot \epsilon$ is distributed according to $p(z)$.
+Given output vectors $\mu$ and $\sigma$ from the Encoder representing the mean and covariance of $q(z|x)$ respectively, we find that $z = \mu + \sigma \odot \epsilon$ is distributed according to $q(z|x)$.
 Then for each individual datapoint we treat its sampled $\epsilon$ as a constant so that $z$ is just a function of the original input and the Encoder's weights.
 This allows us to give the resulting $z$ to the Decoder and compute the gradient of the resulting loss function via backpropagation.
 %one of which is that it allows us control over the distribution of latent vector 
 
-If we used the same loss function as a traditional autoencoder then the network would simply learn to reduce the covariance of $p(z)$ in order to reduce noise in its latent representations.
-Thus we introduce a term to the loss function which constrains the form of $p(z)$.
-Ultimately we are interested in being able to sample realistic latent variables, and we make the arbitrary choice that we want to be able to do this simply by sampling from the zero mean unit covariance normal distribution, so we penalise $p(z)$ the further from this distribution it is.
-%TODO KL loss
+\begin{figure}[h]
+  \centering
+
+
+
+
+
+
+
+
+  \tikzset{every picture/.style={line width=0.75pt}} %set default line width to 0.75pt        
+
+  \begin{tikzpicture}[x=0.75pt,y=0.75pt,yscale=-1,xscale=1]
+  %uncomment if require: \path (0,300); %set diagram left start at 0, and has height of 300
+  
+  %Shape: Square [id:dp31964573484955117] 
+  \draw   (108,190) -- (134.5,190) -- (134.5,216.5) -- (108,216.5) -- cycle ;
+  %Shape: Square [id:dp3315381522116503] 
+  \draw   (171,189) -- (197.5,189) -- (197.5,215.5) -- (171,215.5) -- cycle ;
+  %Shape: Circle [id:dp5157137150601787] 
+  \draw   (137,146.75) .. controls (137,138.05) and (144.05,131) .. (152.75,131) .. controls (161.45,131) and (168.5,138.05) .. (168.5,146.75) .. controls (168.5,155.45) and (161.45,162.5) .. (152.75,162.5) .. controls (144.05,162.5) and (137,155.45) .. (137,146.75) -- cycle ;
+  %Shape: Square [id:dp05107603102822389] 
+  \draw   (293,189) -- (319.5,189) -- (319.5,215.5) -- (293,215.5) -- cycle ;
+  %Shape: Square [id:dp22569528245966897] 
+  \draw   (352,189) -- (378.5,189) -- (378.5,215.5) -- (352,215.5) -- cycle ;
+  %Shape: Square [id:dp9307723856742833] 
+  \draw   (353,125) -- (379.5,125) -- (379.5,151.5) -- (353,151.5) -- cycle ;
+  %Shape: Circle [id:dp39963963544757175] 
+  \draw   (405,202.75) .. controls (405,194.05) and (412.05,187) .. (420.75,187) .. controls (429.45,187) and (436.5,194.05) .. (436.5,202.75) .. controls (436.5,211.45) and (429.45,218.5) .. (420.75,218.5) .. controls (412.05,218.5) and (405,211.45) .. (405,202.75) -- cycle ;
+  %Straight Lines [id:da5853904219054253] 
+  \draw    (121.5,189.43) -- (140.44,159.12) ;
+  \draw [shift={(141.5,157.43)}, rotate = 482.01] [color={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.75]    (10.93,-3.29) .. controls (6.95,-1.4) and (3.31,-0.3) .. (0,0) .. controls (3.31,0.3) and (6.95,1.4) .. (10.93,3.29)   ;
+  %Straight Lines [id:da029718248550361537] 
+  \draw    (184.5,189.43) -- (164.6,159.1) ;
+  \draw [shift={(163.5,157.43)}, rotate = 416.73] [color={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.75]    (10.93,-3.29) .. controls (6.95,-1.4) and (3.31,-0.3) .. (0,0) .. controls (3.31,0.3) and (6.95,1.4) .. (10.93,3.29)   ;
+  %Straight Lines [id:da21889214167912363] 
+  \draw    (152.75,131) -- (152.75,101) ;
+  \draw [shift={(152.75,99)}, rotate = 450] [color={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.75]    (10.93,-3.29) .. controls (6.95,-1.4) and (3.31,-0.3) .. (0,0) .. controls (3.31,0.3) and (6.95,1.4) .. (10.93,3.29)   ;
+  %Straight Lines [id:da4460377874666688] 
+  \draw    (307.5,189.43) -- (351.46,152.78) ;
+  \draw [shift={(353,151.5)}, rotate = 500.19] [color={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.75]    (10.93,-3.29) .. controls (6.95,-1.4) and (3.31,-0.3) .. (0,0) .. controls (3.31,0.3) and (6.95,1.4) .. (10.93,3.29)   ;
+  %Straight Lines [id:da6243739236469146] 
+  \draw    (365.5,188.43) -- (365.5,153.43) ;
+  \draw [shift={(365.5,151.43)}, rotate = 450] [color={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.75]    (10.93,-3.29) .. controls (6.95,-1.4) and (3.31,-0.3) .. (0,0) .. controls (3.31,0.3) and (6.95,1.4) .. (10.93,3.29)   ;
+  %Straight Lines [id:da8887544337702149] 
+  \draw    (420.75,187) -- (381.02,152.8) ;
+  \draw [shift={(379.5,151.5)}, rotate = 400.72] [color={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.75]    (10.93,-3.29) .. controls (6.95,-1.4) and (3.31,-0.3) .. (0,0) .. controls (3.31,0.3) and (6.95,1.4) .. (10.93,3.29)   ;
+  %Straight Lines [id:da6173989757165841] 
+  \draw    (365.75,125) -- (365.75,95) ;
+  \draw [shift={(365.75,93)}, rotate = 450] [color={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.75]    (10.93,-3.29) .. controls (6.95,-1.4) and (3.31,-0.3) .. (0,0) .. controls (3.31,0.3) and (6.95,1.4) .. (10.93,3.29)   ;
+  %Shape: Square [id:dp6864470563987659] 
+  \draw   (139,249) -- (165.5,249) -- (165.5,275.5) -- (139,275.5) -- cycle ;
+  %Straight Lines [id:da3706413880395112] 
+  \draw    (145.5,249) -- (122.75,220.56) ;
+  \draw [shift={(121.5,219)}, rotate = 411.34000000000003] [color={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.75]    (10.93,-3.29) .. controls (6.95,-1.4) and (3.31,-0.3) .. (0,0) .. controls (3.31,0.3) and (6.95,1.4) .. (10.93,3.29)   ;
+  %Straight Lines [id:da15484413544209885] 
+  \draw    (158.5,249) -- (184.21,218.53) ;
+  \draw [shift={(185.5,217)}, rotate = 490.16] [color={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.75]    (10.93,-3.29) .. controls (6.95,-1.4) and (3.31,-0.3) .. (0,0) .. controls (3.31,0.3) and (6.95,1.4) .. (10.93,3.29)   ;
+  %Shape: Square [id:dp9985017530467823] 
+  \draw   (320,248.5) -- (346.5,248.5) -- (346.5,275) -- (320,275) -- cycle ;
+  %Straight Lines [id:da003142022678509937] 
+  \draw    (326.5,248.5) -- (303.75,220.06) ;
+  \draw [shift={(302.5,218.5)}, rotate = 411.34000000000003] [color={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.75]    (10.93,-3.29) .. controls (6.95,-1.4) and (3.31,-0.3) .. (0,0) .. controls (3.31,0.3) and (6.95,1.4) .. (10.93,3.29)   ;
+  %Straight Lines [id:da2704203996875034] 
+  \draw    (339.5,248.5) -- (365.21,218.03) ;
+  \draw [shift={(366.5,216.5)}, rotate = 490.16] [color={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.75]    (10.93,-3.29) .. controls (6.95,-1.4) and (3.31,-0.3) .. (0,0) .. controls (3.31,0.3) and (6.95,1.4) .. (10.93,3.29)   ;
+  %Shape: Square [id:dp7340240930655411] 
+  \draw   (353,66.5) -- (379.5,66.5) -- (379.5,93) -- (353,93) -- cycle ;
+  %Shape: Square [id:dp21421435030738412] 
+  \draw   (140,71.5) -- (166.5,71.5) -- (166.5,98) -- (140,98) -- cycle ;
+  
+  % Text Node
+  \draw (114,198.4) node [anchor=north west][inner sep=0.75pt]    {$\mu $};
+  % Text Node
+  \draw (178,198.4) node [anchor=north west][inner sep=0.75pt]    {$\sigma $};
+  % Text Node
+  \draw (148,144.4) node [anchor=north west][inner sep=0.75pt]    {$z$};
+  % Text Node
+  \draw (299,197.4) node [anchor=north west][inner sep=0.75pt]    {$\mu $};
+  % Text Node
+  \draw (360,197.4) node [anchor=north west][inner sep=0.75pt]    {$\sigma $};
+  % Text Node
+  \draw (361,134.4) node [anchor=north west][inner sep=0.75pt]    {$z$};
+  % Text Node
+  \draw (417,198.4) node [anchor=north west][inner sep=0.75pt]    {$\epsilon $};
+  % Text Node
+  \draw (146,257) node [anchor=north west][inner sep=0.75pt]   [align=left] {E};
+  % Text Node
+  \draw (327,258) node [anchor=north west][inner sep=0.75pt]   [align=left] {E};
+  % Text Node
+  \draw (360,76) node [anchor=north west][inner sep=0.75pt]   [align=left] {D};
+  % Text Node
+  \draw (147,81) node [anchor=north west][inner sep=0.75pt]   [align=left] {D};
+  
+  
+  \end{tikzpicture}
+\caption{Removing the gradient-blocking stochastic node with the reparamaterisation trick.}
+\end{figure}
+
+If we used the same loss function as a traditional autoencoder then the network would simply learn to reduce the covariance of $q(z|x)$ in order to reduce noise in its latent representations.
+Thus we introduce a term to the loss function which constrains the form of $q(z|x)$.
+Ultimately we are interested in being able to sample realistic latent variables from the ``true distribution'' $p(z)$, and we make the arbitrary choice that we want to be able to do this simply by sampling from the zero mean unit covariance normal distribution, so we penalise $q(z|x)$ the further from this distribution it is.
+We do this using a measure of similarity of probability distributions known as the KL divergence of the two distributions.
+In this case it can be computed in closed form as
+$$D_{KL}(q(z|x),p(z)) = \sum_{i=1}^d \sigma_i^2 + \mu_i^2 - \log(\sigma_i)-1$$
+There is a more formal probabilistic justification of the use of KL-divergence here that also suggests the use of a cross entropy reconstruction loss.
+Since World Models uses a least squares loss rather than the more probabilistic approach we won't discuss this interpretation further, but for the interested more details can be found here.
+%CITEME https://arxiv.org/pdf/1312.6114.pdf
 
 \section{Memory}
 The Memory component $M$ of World Models forms the bulk of the agent's internal model.
@@ -509,7 +614,7 @@ The functional form of a mixture distribution has several advantages.
 There is a relatively large degree of flexibility in the distributions that can be learned.
 The use of multiple mixtures allows the learning of multimodal or skewed distributions which would not be possible with a single Gaussian.
 We are also able to easily sample from mixture distributions with a small trick.
-Rather than directly sampling from $p(z)$, we first choose randomly choose one of the $K$ components, denoting our choice as $m$, so that the probability of choosing component $k$ is $p(m=k) =\pi_k$.
+Rather than directly sampling from $p(z)$, we first choose randomly choose one of the $K$ components, denoting our choice as $m$, so that the probability of choosing component $k$ is $p(m=k) =\pi_k$. 
 Then we sample\footnote{See Bishop for an explanation of how to sample from a Gaussian.} $z$ from the corresponding component with probability $\mathcal{N}(z| \mu_m, \Sigma_m)$. %CITEME
 Effectively we have sampled from a joint distribution $p(m,z)$ and we can marginalise out $m$ to see that our sampled $z$ is sampled according to the desired distribution
 $$p(z) = \sum_{m=1}^K p(m,z) = \sum_{m=1}^K p(m)p(z|m) = \sum_{k=1}^K \pi_m \mathcal{N}\left(z|\mu_m, \Sigma_m\right)$$
