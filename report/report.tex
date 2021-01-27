@@ -588,15 +588,275 @@ Since World Models uses a least squares loss rather than the more probabilistic 
 %CITEME https://arxiv.org/pdf/1312.6114.pdf
 
 \section{Memory}
+In partially observable 
+
 The Memory component $M$ of World Models forms the bulk of the agent's internal model.
 It is trained to learn the probability distribution $p(z_{t+1} | z_t, a_t, h_t)$ which when combined with the Vision component can be used to produce interactive dreams of the agent's environment.
 The agent is able to harness this predictive ability by accessing via an internal memory state $h$ of $M$ that is one of the features given to the Controller $C$.
 The architecture of $M$ is a neural network known as a Mixture Density Reccurrent Neural Network.
 This has two components: the input LSTM layer which provides the memory functionality and the output Mixture Density layer which allows the network to output a probability distribution. 
-%TODO model picture
+
+\begin{figure}[h]
+  \centering
+
+
+\tikzset{every picture/.style={line width=0.75pt}} %set default line width to 0.75pt        
+
+\begin{tikzpicture}[x=0.75pt,y=0.75pt,yscale=-1,xscale=1]
+%uncomment if require: \path (0,363); %set diagram left start at 0, and has height of 363
+
+%Rounded Rect [id:dp7430947240092758] 
+\draw   (153.07,174.8) .. controls (153.07,168.28) and (158.35,163) .. (164.87,163) -- (200.27,163) .. controls (206.79,163) and (212.07,168.28) .. (212.07,174.8) -- (212.07,234.63) .. controls (212.07,241.15) and (206.79,246.43) .. (200.27,246.43) -- (164.87,246.43) .. controls (158.35,246.43) and (153.07,241.15) .. (153.07,234.63) -- cycle ;
+%Rounded Rect [id:dp7429822235575114] 
+\draw   (148.07,82) .. controls (148.07,77.58) and (151.65,74) .. (156.07,74) -- (210.07,74) .. controls (214.49,74) and (218.07,77.58) .. (218.07,82) -- (218.07,106) .. controls (218.07,110.42) and (214.49,114) .. (210.07,114) -- (156.07,114) .. controls (151.65,114) and (148.07,110.42) .. (148.07,106) -- cycle ;
+%Straight Lines [id:da7494592707832595] 
+\draw    (184.07,74.43) -- (184.07,44.43) ;
+\draw [shift={(184.07,42.43)}, rotate = 450] [color={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.75]    (10.93,-3.29) .. controls (6.95,-1.4) and (3.31,-0.3) .. (0,0) .. controls (3.31,0.3) and (6.95,1.4) .. (10.93,3.29)   ;
+%Straight Lines [id:da7228370640214785] 
+\draw    (184.07,162.43) -- (184.07,117.43) ;
+\draw [shift={(184.07,115.43)}, rotate = 450] [color={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.75]    (10.93,-3.29) .. controls (6.95,-1.4) and (3.31,-0.3) .. (0,0) .. controls (3.31,0.3) and (6.95,1.4) .. (10.93,3.29)   ;
+%Straight Lines [id:da8085002894425344] 
+\draw    (181.07,282.43) -- (181.07,248.43) ;
+\draw [shift={(181.07,246.43)}, rotate = 450] [color={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.75]    (10.93,-3.29) .. controls (6.95,-1.4) and (3.31,-0.3) .. (0,0) .. controls (3.31,0.3) and (6.95,1.4) .. (10.93,3.29)   ;
+%Curve Lines [id:da9147039112573743] 
+\draw    (128.36,279.29) .. controls (128.64,251.85) and (126.45,237.85) .. (148.68,224.13) ;
+\draw [shift={(150.07,223.29)}, rotate = 509.44] [color={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.75]    (10.93,-3.29) .. controls (6.95,-1.4) and (3.31,-0.3) .. (0,0) .. controls (3.31,0.3) and (6.95,1.4) .. (10.93,3.29)   ;
+%Straight Lines [id:da4978899346146559] 
+\draw    (211.93,206.29) -- (260.93,206.29) ;
+\draw [shift={(262.93,206.29)}, rotate = 180] [color={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.75]    (10.93,-3.29) .. controls (6.95,-1.4) and (3.31,-0.3) .. (0,0) .. controls (3.31,0.3) and (6.95,1.4) .. (10.93,3.29)   ;
+%Rounded Rect [id:dp21684587264636557] 
+\draw   (265.07,175.8) .. controls (265.07,169.28) and (270.35,164) .. (276.87,164) -- (312.27,164) .. controls (318.79,164) and (324.07,169.28) .. (324.07,175.8) -- (324.07,235.63) .. controls (324.07,242.15) and (318.79,247.43) .. (312.27,247.43) -- (276.87,247.43) .. controls (270.35,247.43) and (265.07,242.15) .. (265.07,235.63) -- cycle ;
+%Rounded Rect [id:dp574116066843422] 
+\draw   (260.07,83) .. controls (260.07,78.58) and (263.65,75) .. (268.07,75) -- (322.07,75) .. controls (326.49,75) and (330.07,78.58) .. (330.07,83) -- (330.07,107) .. controls (330.07,111.42) and (326.49,115) .. (322.07,115) -- (268.07,115) .. controls (263.65,115) and (260.07,111.42) .. (260.07,107) -- cycle ;
+%Straight Lines [id:da13341755017886814] 
+\draw    (296.07,75.43) -- (296.07,45.43) ;
+\draw [shift={(296.07,43.43)}, rotate = 450] [color={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.75]    (10.93,-3.29) .. controls (6.95,-1.4) and (3.31,-0.3) .. (0,0) .. controls (3.31,0.3) and (6.95,1.4) .. (10.93,3.29)   ;
+%Straight Lines [id:da6061008181274479] 
+\draw    (296.07,163.43) -- (296.07,118.43) ;
+\draw [shift={(296.07,116.43)}, rotate = 450] [color={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.75]    (10.93,-3.29) .. controls (6.95,-1.4) and (3.31,-0.3) .. (0,0) .. controls (3.31,0.3) and (6.95,1.4) .. (10.93,3.29)   ;
+%Straight Lines [id:da7962048588570034] 
+\draw    (293.07,283.43) -- (293.07,249.43) ;
+\draw [shift={(293.07,247.43)}, rotate = 450] [color={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.75]    (10.93,-3.29) .. controls (6.95,-1.4) and (3.31,-0.3) .. (0,0) .. controls (3.31,0.3) and (6.95,1.4) .. (10.93,3.29)   ;
+%Curve Lines [id:da06723740780427412] 
+\draw    (240.36,280.29) .. controls (240.64,252.85) and (238.45,238.85) .. (260.68,225.13) ;
+\draw [shift={(262.07,224.29)}, rotate = 509.44] [color={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.75]    (10.93,-3.29) .. controls (6.95,-1.4) and (3.31,-0.3) .. (0,0) .. controls (3.31,0.3) and (6.95,1.4) .. (10.93,3.29)   ;
+%Straight Lines [id:da026804072896316145] 
+\draw    (323.93,207.29) -- (372.93,207.29) ;
+\draw [shift={(374.93,207.29)}, rotate = 180] [color={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.75]    (10.93,-3.29) .. controls (6.95,-1.4) and (3.31,-0.3) .. (0,0) .. controls (3.31,0.3) and (6.95,1.4) .. (10.93,3.29)   ;
+%Rounded Rect [id:dp5485476783727927] 
+\draw   (376.07,176.8) .. controls (376.07,170.28) and (381.35,165) .. (387.87,165) -- (423.27,165) .. controls (429.79,165) and (435.07,170.28) .. (435.07,176.8) -- (435.07,236.63) .. controls (435.07,243.15) and (429.79,248.43) .. (423.27,248.43) -- (387.87,248.43) .. controls (381.35,248.43) and (376.07,243.15) .. (376.07,236.63) -- cycle ;
+%Rounded Rect [id:dp9766477067537895] 
+\draw   (371.07,84) .. controls (371.07,79.58) and (374.65,76) .. (379.07,76) -- (433.07,76) .. controls (437.49,76) and (441.07,79.58) .. (441.07,84) -- (441.07,108) .. controls (441.07,112.42) and (437.49,116) .. (433.07,116) -- (379.07,116) .. controls (374.65,116) and (371.07,112.42) .. (371.07,108) -- cycle ;
+%Straight Lines [id:da15122846554522162] 
+\draw    (407.07,76.43) -- (407.07,46.43) ;
+\draw [shift={(407.07,44.43)}, rotate = 450] [color={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.75]    (10.93,-3.29) .. controls (6.95,-1.4) and (3.31,-0.3) .. (0,0) .. controls (3.31,0.3) and (6.95,1.4) .. (10.93,3.29)   ;
+%Straight Lines [id:da12481781992958196] 
+\draw    (407.07,164.43) -- (407.07,119.43) ;
+\draw [shift={(407.07,117.43)}, rotate = 450] [color={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.75]    (10.93,-3.29) .. controls (6.95,-1.4) and (3.31,-0.3) .. (0,0) .. controls (3.31,0.3) and (6.95,1.4) .. (10.93,3.29)   ;
+%Straight Lines [id:da1600245319817022] 
+\draw    (404.07,284.43) -- (404.07,250.43) ;
+\draw [shift={(404.07,248.43)}, rotate = 450] [color={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.75]    (10.93,-3.29) .. controls (6.95,-1.4) and (3.31,-0.3) .. (0,0) .. controls (3.31,0.3) and (6.95,1.4) .. (10.93,3.29)   ;
+%Curve Lines [id:da6377994512542458] 
+\draw    (351.36,281.29) .. controls (351.64,253.85) and (349.45,239.85) .. (371.68,226.13) ;
+\draw [shift={(373.07,225.29)}, rotate = 509.44] [color={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.75]    (10.93,-3.29) .. controls (6.95,-1.4) and (3.31,-0.3) .. (0,0) .. controls (3.31,0.3) and (6.95,1.4) .. (10.93,3.29)   ;
+%Straight Lines [id:da9236269480372257] 
+\draw    (434.93,208.29) -- (483.93,208.29) ;
+\draw [shift={(485.93,208.29)}, rotate = 180] [color={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.75]    (10.93,-3.29) .. controls (6.95,-1.4) and (3.31,-0.3) .. (0,0) .. controls (3.31,0.3) and (6.95,1.4) .. (10.93,3.29)   ;
+%Straight Lines [id:da6161697921472136] 
+\draw    (106.36,206.29) -- (151.36,206.29) ;
+\draw [shift={(153.36,206.29)}, rotate = 180] [color={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.75]    (10.93,-3.29) .. controls (6.95,-1.4) and (3.31,-0.3) .. (0,0) .. controls (3.31,0.3) and (6.95,1.4) .. (10.93,3.29)   ;
+
+% Text Node
+\draw (165.07,197) node [anchor=north west][inner sep=0.75pt]   [align=left] {RNN};
+% Text Node
+\draw (164.07,86) node [anchor=north west][inner sep=0.75pt]   [align=left] {MDN};
+% Text Node
+\draw (177.07,21.4) node [anchor=north west][inner sep=0.75pt]    {$z_{t}$};
+% Text Node
+\draw (166.07,283) node [anchor=north west][inner sep=0.75pt]   [align=left] {$\displaystyle z_{t-1}$};
+% Text Node
+\draw (113,282.4) node [anchor=north west][inner sep=0.75pt]    {$a_{t-1}$};
+% Text Node
+\draw (230.93,182) node [anchor=north west][inner sep=0.75pt]   [align=left] {$\displaystyle h_{t}$};
+% Text Node
+\draw (277.07,198) node [anchor=north west][inner sep=0.75pt]   [align=left] {RNN};
+% Text Node
+\draw (276.07,87) node [anchor=north west][inner sep=0.75pt]   [align=left] {MDN};
+% Text Node
+\draw (289.07,22.4) node [anchor=north west][inner sep=0.75pt]    {$z_{t+1}$};
+% Text Node
+\draw (278.07,284) node [anchor=north west][inner sep=0.75pt]   [align=left] {$\displaystyle z_{t}$};
+% Text Node
+\draw (225,283.4) node [anchor=north west][inner sep=0.75pt]    {$a_{t}$};
+% Text Node
+\draw (342.93,183) node [anchor=north west][inner sep=0.75pt]   [align=left] {$\displaystyle h_{t+1}$};
+% Text Node
+\draw (388.07,199) node [anchor=north west][inner sep=0.75pt]   [align=left] {RNN};
+% Text Node
+\draw (387.07,88) node [anchor=north west][inner sep=0.75pt]   [align=left] {MDN};
+% Text Node
+\draw (400.07,23.4) node [anchor=north west][inner sep=0.75pt]    {$z_{t+2}$};
+% Text Node
+\draw (389.07,285) node [anchor=north west][inner sep=0.75pt]   [align=left] {$\displaystyle z_{t+1}$};
+% Text Node
+\draw (336,284.4) node [anchor=north west][inner sep=0.75pt]    {$a_{t+1}$};
+% Text Node
+\draw (453.93,184) node [anchor=north west][inner sep=0.75pt]   [align=left] {$\displaystyle h_{t+2}$};
+% Text Node
+\draw (107.93,184) node [anchor=north west][inner sep=0.75pt]   [align=left] {$\displaystyle h_{t-1}$};
+
+
+\end{tikzpicture}
+\caption{The Memory component combines an RNN and MDN to predict the distribution of the next latent variable $z$.}
+\label{memFig}
+\end{figure}
 
 \subsection{Long Short Term Memory}
+Recurrent neural nets (RNNs) are common in problems where data is sequential, for example text, audio or video data.
+RNNs are composed of one or more reccurrent layers.
+In addition to taking an element of the sequence (like a  word, note, or image) as their input these recurrent layers are also given their own output on the previous element of the sequence.
+Since this output in turn depends on the output of the network on the element before that the result is a sequential reccurence as depicted in Figure \ref{memFig}.
 
+Classical fully connected RNNs often suffer from what is known as the \textit{vanishing gradient problem}. %CITEME Untersuchungen zu dynamischen neuronalen Netzen
+Essentially, the chain rule means the backpropgation is multiplicative across the recurrent connections.
+Thus gradient information decays (or explodes) exponentially with the distance in the sequence, making it hard for classical RNNs to learn to maintain long term memory. 
+Long Short Term Memory Networks (LSTMs) are designed to address this problem.
+They do this by maintaining separate protected memory cells $c$ which can only be changed or read by the network through a series of gates.
+At a timestep $t$ an LSTM layer reads in input $x_t$, as well as its own previous cell value $c_{t-1}$ and previous output $h_{t-1}$.
+It computes both new cell values $c_t$ and output $h_t$, however the network at that time step is only given $h_t$ and does not directly see $c_t$.
+At each timestep the memory cells go through three gates, each with its own learned weights.
+The first gate is the forget gate, where the cell values are multiplied componentwise by $\sigma( W_f\cdot [h_{t-1},x_t]+b_f)$.
+Here $W_f$ and $b_f$ are learned weights and the sigmoid activation results in outputs between 0 and 1, so that values closer to 0 cause the corresponding cell to be forgotten and values closer to 1 cause it to be remembered.
+The second gate is the input gate.
+New information to be added to the cells is calculated as $\tanh( W_c\cdot [h_{t-1},x_t]+b_c)$.
+Another sigmoid activation $\sigma( W_i\cdot [h_{t-1},x_t]+b_i)$ is multiplied with this information to decide what should be accepted and the result is added to the cell values to form $c_t$.
+Finally the output gate scales $\tanh(c_t)$ by $\sigma( W_o\cdot [h_{t-1},x_t]+b_o)$ to determine the output $h_t$.
+
+
+\begin{figure}[h]
+  \centering
+
+
+
+
+
+
+  \tikzset{every picture/.style={line width=0.75pt}} %set default line width to 0.75pt        
+
+  \begin{tikzpicture}[x=0.75pt,y=0.75pt,yscale=-1,xscale=1]
+  %uncomment if require: \path (0,300); %set diagram left start at 0, and has height of 300
+  
+  %Rounded Rect [id:dp7644481375883001] 
+  \draw  [draw opacity=0][fill={rgb, 255:red, 126; green, 211; blue, 33 }  ,fill opacity=0.25 ] (66,92.29) .. controls (66,72.8) and (81.8,57) .. (101.29,57) -- (323.07,57) .. controls (342.56,57) and (358.36,72.8) .. (358.36,92.29) -- (358.36,198.14) .. controls (358.36,217.63) and (342.56,233.43) .. (323.07,233.43) -- (101.29,233.43) .. controls (81.8,233.43) and (66,217.63) .. (66,198.14) -- cycle ;
+  %Straight Lines [id:da14977972949454688] 
+  \draw    (45.36,88.43) -- (387.36,88.43) ;
+  \draw [shift={(389.36,88.43)}, rotate = 180] [color={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.75]    (10.93,-3.29) .. controls (6.95,-1.4) and (3.31,-0.3) .. (0,0) .. controls (3.31,0.3) and (6.95,1.4) .. (10.93,3.29)   ;
+  %Curve Lines [id:da36560052384334196] 
+  \draw    (85.36,259.43) .. controls (86.36,225.43) and (75.36,198.43) .. (111.36,202.43) ;
+  %Straight Lines [id:da5858359446293169] 
+  \draw    (42.36,202.43) -- (111.36,202.43) ;
+  %Curve Lines [id:da9040025231719764] 
+  \draw    (111.36,202.43) .. controls (127.36,201.43) and (122.36,190.43) .. (123.36,177.43) ;
+  %Shape: Rectangle [id:dp5386952386344248] 
+  \draw  [fill={rgb, 255:red, 248; green, 231; blue, 28 }  ,fill opacity=1 ] (109,156.43) -- (139.36,156.43) -- (139.36,177) -- (109,177) -- cycle ;
+  %Shape: Circle [id:dp24827607695419052] 
+  \draw  [fill={rgb, 255:red, 250; green, 130; blue, 145 }  ,fill opacity=1 ] (111.18,89.18) .. controls (111.18,81.9) and (117.08,76) .. (124.36,76) .. controls (131.64,76) and (137.54,81.9) .. (137.54,89.18) .. controls (137.54,96.46) and (131.64,102.36) .. (124.36,102.36) .. controls (117.08,102.36) and (111.18,96.46) .. (111.18,89.18) -- cycle ;
+  %Straight Lines [id:da9219708528408646] 
+  \draw    (124.36,155.43) -- (124.36,104.36) ;
+  \draw [shift={(124.36,102.36)}, rotate = 450] [color={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.75]    (10.93,-3.29) .. controls (6.95,-1.4) and (3.31,-0.3) .. (0,0) .. controls (3.31,0.3) and (6.95,1.4) .. (10.93,3.29)   ;
+  %Straight Lines [id:da47393213977371973] 
+  \draw    (111.36,202.43) -- (237.36,203.43) ;
+  %Curve Lines [id:da9206419555540606] 
+  \draw    (151.36,202.43) .. controls (167.36,201.43) and (162.36,190.43) .. (163.36,177.43) ;
+  %Curve Lines [id:da7582972370990808] 
+  \draw    (195.36,202.43) .. controls (211.36,201.43) and (206.36,190.43) .. (207.36,177.43) ;
+  %Shape: Rectangle [id:dp2198207899620419] 
+  \draw  [fill={rgb, 255:red, 248; green, 231; blue, 28 }  ,fill opacity=1 ] (149,157.43) -- (179.36,157.43) -- (179.36,178) -- (149,178) -- cycle ;
+  %Shape: Rectangle [id:dp16233653855602004] 
+  \draw  [fill={rgb, 255:red, 248; green, 231; blue, 28 }  ,fill opacity=1 ] (187,156.43) -- (231.36,156.43) -- (231.36,177) -- (187,177) -- cycle ;
+  %Shape: Circle [id:dp00028065792295373093] 
+  \draw  [fill={rgb, 255:red, 250; green, 130; blue, 145 }  ,fill opacity=1 ] (193.18,130.18) .. controls (193.18,122.9) and (199.08,117) .. (206.36,117) .. controls (213.64,117) and (219.54,122.9) .. (219.54,130.18) .. controls (219.54,137.46) and (213.64,143.36) .. (206.36,143.36) .. controls (199.08,143.36) and (193.18,137.46) .. (193.18,130.18) -- cycle ;
+  %Shape: Circle [id:dp35773285784240216] 
+  \draw  [fill={rgb, 255:red, 250; green, 130; blue, 145 }  ,fill opacity=1 ] (193.18,88.18) .. controls (193.18,80.9) and (199.08,75) .. (206.36,75) .. controls (213.64,75) and (219.54,80.9) .. (219.54,88.18) .. controls (219.54,95.46) and (213.64,101.36) .. (206.36,101.36) .. controls (199.08,101.36) and (193.18,95.46) .. (193.18,88.18) -- cycle ;
+  %Shape: Circle [id:dp9984490333965701] 
+  \draw  [fill={rgb, 255:red, 250; green, 130; blue, 145 }  ,fill opacity=1 ] (282.18,142.18) .. controls (282.18,134.9) and (288.08,129) .. (295.36,129) .. controls (302.64,129) and (308.54,134.9) .. (308.54,142.18) .. controls (308.54,149.46) and (302.64,155.36) .. (295.36,155.36) .. controls (288.08,155.36) and (282.18,149.46) .. (282.18,142.18) -- cycle ;
+  %Curve Lines [id:da4297917696834421] 
+  \draw    (165.36,156.43) .. controls (167.32,144.67) and (164.48,130.99) .. (191.49,130.21) ;
+  \draw [shift={(193.18,130.18)}, rotate = 539.5] [color={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.75]    (10.93,-3.29) .. controls (6.95,-1.4) and (3.31,-0.3) .. (0,0) .. controls (3.31,0.3) and (6.95,1.4) .. (10.93,3.29)   ;
+  %Straight Lines [id:da6262632387476696] 
+  \draw    (206.36,156.43) -- (206.36,145.36) ;
+  \draw [shift={(206.36,143.36)}, rotate = 450] [color={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.75]    (10.93,-3.29) .. controls (6.95,-1.4) and (3.31,-0.3) .. (0,0) .. controls (3.31,0.3) and (6.95,1.4) .. (10.93,3.29)   ;
+  %Straight Lines [id:da6429279191222157] 
+  \draw    (206.36,117) -- (206.36,103.36) ;
+  \draw [shift={(206.36,101.36)}, rotate = 450] [color={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.75]    (10.93,-3.29) .. controls (6.95,-1.4) and (3.31,-0.3) .. (0,0) .. controls (3.31,0.3) and (6.95,1.4) .. (10.93,3.29)   ;
+  %Shape: Rectangle [id:dp6426648146347886] 
+  \draw  [fill={rgb, 255:red, 248; green, 231; blue, 28 }  ,fill opacity=1 ] (240,156.43) -- (270.36,156.43) -- (270.36,177) -- (240,177) -- cycle ;
+  %Curve Lines [id:da6718405121494726] 
+  \draw    (237.36,203.43) .. controls (253.36,202.43) and (253.36,190.43) .. (254.36,177.43) ;
+  %Curve Lines [id:da05718705579556116] 
+  \draw    (253.36,157.43) .. controls (253.36,145.43) and (256.36,141.43) .. (282.18,142.18) ;
+  %Shape: Rectangle [id:dp5785920877058888] 
+  \draw  [fill={rgb, 255:red, 250; green, 130; blue, 145 }  ,fill opacity=1 ] (273,108.43) .. controls (273,104.56) and (276.13,101.43) .. (280,101.43) -- (310.36,101.43) .. controls (314.22,101.43) and (317.36,104.56) .. (317.36,108.43) -- (317.36,115) .. controls (317.36,118.87) and (314.22,122) .. (310.36,122) -- (280,122) .. controls (276.13,122) and (273,118.87) .. (273,115) -- cycle ;
+  %Curve Lines [id:da6810023243615051] 
+  \draw    (286.36,88.43) .. controls (294.36,91.43) and (294.36,98.43) .. (294.36,102.43) ;
+  %Straight Lines [id:da1328492474823424] 
+  \draw    (295.36,129) -- (295.36,122.43) ;
+  %Straight Lines [id:da6932574999115595] 
+  \draw    (313.36,202.43) -- (388.36,202.43) ;
+  \draw [shift={(390.36,202.43)}, rotate = 180] [color={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.75]    (10.93,-3.29) .. controls (6.95,-1.4) and (3.31,-0.3) .. (0,0) .. controls (3.31,0.3) and (6.95,1.4) .. (10.93,3.29)   ;
+  %Straight Lines [id:da09230780170649977] 
+  \draw    (295.36,155.36) -- (295.36,186.43) ;
+  %Curve Lines [id:da8312301392191521] 
+  \draw    (295.36,186.43) .. controls (297.36,200.43) and (300.36,202.43) .. (313.36,202.43) ;
+  %Curve Lines [id:da9758555031264495] 
+  \draw    (325.36,202.43) .. controls (341.36,201.43) and (336.36,190.43) .. (337.36,177.43) ;
+  %Straight Lines [id:da3635538651240182] 
+  \draw    (337.36,177.43) -- (337.36,95.29) ;
+  %Straight Lines [id:da6966096252928047] 
+  \draw    (337.36,80.29) -- (337.36,21.29) ;
+  \draw [shift={(337.36,19.29)}, rotate = 450] [color={rgb, 255:red, 0; green, 0; blue, 0 }  ][line width=0.75]    (10.93,-3.29) .. controls (6.95,-1.4) and (3.31,-0.3) .. (0,0) .. controls (3.31,0.3) and (6.95,1.4) .. (10.93,3.29)   ;
+  %Rounded Rect [id:dp06773438982764102] 
+  \draw  [color={rgb, 255:red, 74; green, 144; blue, 226 }  ,draw opacity=1 ][dash pattern={on 4.5pt off 4.5pt}] (106.93,75.2) .. controls (106.93,71.22) and (110.15,68) .. (114.13,68) -- (135.73,68) .. controls (139.71,68) and (142.93,71.22) .. (142.93,75.2) -- (142.93,207.09) .. controls (142.93,211.06) and (139.71,214.29) .. (135.73,214.29) -- (114.13,214.29) .. controls (110.15,214.29) and (106.93,211.06) .. (106.93,207.09) -- cycle ;
+  %Rounded Rect [id:dp366292533696718] 
+  \draw  [color={rgb, 255:red, 74; green, 144; blue, 226 }  ,draw opacity=1 ][dash pattern={on 4.5pt off 4.5pt}] (145.93,86) .. controls (145.93,76.06) and (153.99,68) .. (163.93,68) -- (217.93,68) .. controls (227.87,68) and (235.93,76.06) .. (235.93,86) -- (235.93,196.29) .. controls (235.93,206.23) and (227.87,214.29) .. (217.93,214.29) -- (163.93,214.29) .. controls (153.99,214.29) and (145.93,206.23) .. (145.93,196.29) -- cycle ;
+  %Rounded Rect [id:dp859119350521788] 
+  \draw  [color={rgb, 255:red, 74; green, 144; blue, 226 }  ,draw opacity=1 ][dash pattern={on 4.5pt off 4.5pt}] (240.93,108.49) .. controls (240.93,99.54) and (248.18,92.29) .. (257.13,92.29) -- (305.73,92.29) .. controls (314.68,92.29) and (321.93,99.54) .. (321.93,108.49) -- (321.93,198.09) .. controls (321.93,207.03) and (314.68,214.29) .. (305.73,214.29) -- (257.13,214.29) .. controls (248.18,214.29) and (240.93,207.03) .. (240.93,198.09) -- cycle ;
+  
+  % Text Node
+  \draw (31,63.4) node [anchor=north west][inner sep=0.75pt]    {$C_{t-1}$};
+  % Text Node
+  \draw (377,61.4) node [anchor=north west][inner sep=0.75pt]    {$C_{t}$};
+  % Text Node
+  \draw (58,244.4) node [anchor=north west][inner sep=0.75pt]    {$x_{t}$};
+  % Text Node
+  \draw (29,177.4) node [anchor=north west][inner sep=0.75pt]    {$h_{t-1}$};
+  % Text Node
+  \draw (378,176.4) node [anchor=north west][inner sep=0.75pt]    {$h_{t}$};
+  % Text Node
+  \draw (118,160) node [anchor=north west][inner sep=0.75pt]   [align=left] {$\displaystyle \sigma $};
+  % Text Node
+  \draw (116,82.4) node [anchor=north west][inner sep=0.75pt]    {$\times $};
+  % Text Node
+  \draw (159,161) node [anchor=north west][inner sep=0.75pt]   [align=left] {$\displaystyle \sigma $};
+  % Text Node
+  \draw (195,159.43) node [anchor=north west][inner sep=0.75pt]   [align=left] {tanh};
+  % Text Node
+  \draw (196.36,121.4) node [anchor=north west][inner sep=0.75pt]    {$\times $};
+  % Text Node
+  \draw (199,81.4) node [anchor=north west][inner sep=0.75pt]    {$+$};
+  % Text Node
+  \draw (248,160) node [anchor=north west][inner sep=0.75pt]   [align=left] {$\displaystyle \sigma $};
+  % Text Node
+  \draw (280,104.43) node [anchor=north west][inner sep=0.75pt]   [align=left] {tanh};
+  % Text Node
+  \draw (288.36,136.4) node [anchor=north west][inner sep=0.75pt]    {$\times $};
+  % Text Node
+  \draw (313,13.4) node [anchor=north west][inner sep=0.75pt]    {$h_{t}$};
+  
+  
+  \end{tikzpicture}
+\caption{An LSTM layer. The forget, input, and output gates are outlined in blue from left to right.}
+\end{figure}
 \subsection{Mixture Density Nets}
 A mixture density net (MDN) is a type of feedforward neural net, categorised by its output layer and loss function, that learns probability distributions.
 That is, given an input vector $x$, rather than returning a prediction $z$ an MDN returns a distribution of predictions $p(z)$.
