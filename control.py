@@ -179,7 +179,7 @@ class WorldModel():
 
     def import_data(self, n_files, M):
         rollout_path = self.path + '/rollouts/'
-        filelist, n_files = get_filelist(n_files, rollout_path)
+        filelist, n_files = WorldModel.get_filelist(n_files, rollout_path)
 
         data = np.zeros((M*n_files, SCREEN_SIZE_Y, SCREEN_SIZE_X, 3), dtype=np.float32)
         idx = 0
@@ -214,6 +214,12 @@ class WorldModel():
         data, n = self.import_data(n, 25)
         print(data.shape)
         vae = self.load_vae(False)
+        z = vae.encoder.predict(data)
+        mu = z[0]
+        log_var = z[1]
+
+        print(mu.shape)
+
         recon = vae.full_model.predict(data)
         recon_path = self.path + '/recon/'
 
@@ -222,8 +228,10 @@ class WorldModel():
         else:
             os.mkdir(recon_path)
             print('Made new directory: ' + recon_path)
-
+        
         for i in range(n*25):
+            print("mu", mu[i])
+            print("log_var", log_var[i])
             mpimg.imsave(recon_path+'obs_' +str(i)+".png", data[i])
             mpimg.imsave(recon_path+'recon_'+str(i)+".png", recon[i])
 
@@ -263,7 +271,8 @@ class WorldModel():
         for file in filelist:
             try:
                 data = np.load(rollout_path + file)
-                obs = data['obs']
+                obs = data['obs']/255
+                #fucked up by scaling by 255 twice
                 mu, log_var, _ = vae.encoder.predict(obs)
                 # We save the mu and log_var so in MDRNN training we can generate a new z each time
                 np.savez_compressed(vae_rollout_path  + file, mu=mu, log_var=log_var)
@@ -279,37 +288,91 @@ class WorldModel():
 
 #################################################################################################
 
-    def _04_train_mdrnn(self, restart = False, N=73, batch_size = 20):
+    def _04_train_mdrnn(self, restart = False, N=73, batch_size = 20, steps = 1):
 
         vae_rollout_path = self.path+'/vae_rollouts/'
-        mdrnn = MDRNN.MDRNN(IN_DIM, OUT_DIM, LSTM_UNITS, N_MIXES)
+        mdrnn = self.load_mdrnn(new_model = restart)
 
+        filelist, N = WorldModel.get_filelist(N, vae_rollout_path)
+
+        for step in range(steps):
+            print('STEP' + str(step))
+
+            #z , action, rew, done = random_batch(filelist, batch_size)
+            z = self.random_batch(filelist, batch_size)
+            rnn_in = z[:, :-1, :] #np.concatenate([z[:, :-1, :], action[:, :-1, :]], axis = 2)
+            rnn_out = z[:, 1:, :]
+
+            mdrnn.train(rnn_in, rnn_out)
+
+            if step % 10 == 0:
+                mdrnn.model.save_weights('./MDRNN/weights/' + self.name +'.ckpt')
+                print("Saved weights")
+
+        mdrnn.model.save_weights('./MDRNN/weights/' + self.name +'.ckpt')
+        print("Saved weights")
+
+    def load_mdrnn(self, new_model = False, in_dim = 32, out_dim = 32, lstm_units=256, n_mixes=5):
+        if self.mdrnn != None:
+            return self.mdrnn
+        mdrnn = MDRNN.MDRNN(in_dim, out_dim, lstm_units, n_mixes)
         if not new_model:
+            mdrnn.set_weights('./MDRNN/weights/' + self.name +'.ckpt')
+            print("Set weights successfully")
+        self.mdrnn = mdrnn
+        return mdrnn
+
+    def random_batch(self, filelist, batch_size):
+        """open batch_size files from filelist"""
+        N_data = len(filelist)
+        start_index = random.randrange(N_data)
+        if start_index + batch_size > N_data:
+            wrap = (start_index + batch_size) % N_data
+            indices = [i for i in range(wrap)] + [i for i in range(start_index, N_data)]
+        else:
+            indices = range(start_index, start_index+batch_size)
+        #indices = np.random.permutation(N_data)[0:batch_size]
+        assert len(indices) == batch_size
+
+        z_list = []
+        #action_list = []
+        #rew_list = []
+        #done_list = []
+
+        for i in indices:
             try:
-                mdrnn.set_weights('./MDRNN/weights.h5')
-            except:
-                print("Either set --new_model or ensure ./MDRNN/weights.h5 exists")
-                raise
+                new_data = np.load(self.path + '/vae_rollouts/' + filelist[i], allow_pickle=True)
 
-    filelist, N = get_filelist(N)
+                # this is the latent distribution
+                mu = new_data['mu']
+                log_var = new_data['log_var']
+                #action = new_data['action']
+                #reward = new_data['reward']
+                #done = new_data['done']
 
-    for step in range(steps):
-        print('STEP' + str(step))
+                #reward = np.expand_dims(reward, axis=1)
+                #done = np.expand_dims(done, axis=1)
 
-        z, action, rew, done = random_batch(filelist, batch_size)
-        rnn_in = np.concatenate([z[:, :-1, :], action[:, :-1, :]], axis = 2)
-        rnn_out = z[:, 1:, :]
+                s = log_var.shape
 
-        mdrnn.train(rnn_in, rnn_out)
+                z = mu + np.exp(log_var/2.0) * np.random.randn(*s)
 
-        if step % 10 == 0:
-            mdrnn.model.save_weights('./MDRNN/weights.h5')
-            print("Saved weights")
+                z_list.append(z)
+                #action_list.append(action)
+                #rew_list.append(reward)
+                #done_list.append(done)
 
-    mdrnn.model.save_weights('./MDRNN/weights.h5')
-    print("Saved weights")
+            except Exception as e:
+                print(e)
 
-    def load_mdrnn(self)
+        z_list = np.array(z_list)
+        #action_list = np.array(action_list)
+        #rew_list = np.array(rew_list)
+        #done_list = np.array(done_list)
+
+        return z_list #, action_list, rew_list, done_list
+
+
 
     def _05_play_dream(self):
         pass

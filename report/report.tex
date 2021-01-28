@@ -100,7 +100,7 @@
 \begin{abstract}
 In World Models (CITEME) David Ha et al describe an architecture allowing a computer agent to learn an internal model of its own environment.
 Their model was powerful enough that agents could be trained in its dreamed simulation to achieve good performance in the original environment.
-In this project I set out to create my own implimentation of the World Models architecture.
+In this project I set out to create my own implementation of the World Models architecture.
 
 \end{abstract}
 
@@ -124,12 +124,19 @@ Deep reinforcement learning is not a complete solution however: training of comp
 A third approach, championed by Schmidthuber is to decouple the learning process, first learning a model $M$ and then using this model to train a controller $C$. %CITEME
 The advantage of this approach is that complex models can be learned without worrying about credit assignment, allowing us to more easily train a comparatively simple controller.
 
-World Models is a particularly simple implimentation of Schmidthuber's approach which has been shown to be remarkable effective at learning in image based environments. %CITEME
-It breaks an agent into three components, the first two are vision $V$ and model $M$, and together these allow an agent to interpret and model its world.
-The controller $C$ is then trained using both features of the environment and some of the internal knowledge of $M$.
-Significantly, the internal model comprised of $V$ and $M$ is powerful enough to recreate a simulated version of the original environment, known as a \textit{dream}.
-These dreams were close enough to the original environment that agents could be trained entirely inside a dream to perform well in the original environment.
-In this project I primarily set out to investigate this part of World Models, which consists of the $V$ and $M$ components.
+World Models is a particularly simple implementation of Schmidthuber's approach which has been shown to be remarkable effective at learning in image based environments. %CITEME
+The most striking feature of World Models is the power of its learned internal model, which is able to simulate an interactive \textit{dream} of the original environment.
+Alongside the original paper David Ha et al. released a browser-based version of these dreams which you can try out here. %CITEME
+In addition to being visually impressive the dreams are stable and accurate enough that agents could be trained entirely enside their own dreams to perform well in the original environment.
+In part due to the sheer beauty of the dreams this report focuses more on the internal model than the end-to-end trained agent, however it should be noted that the end-to-end agent is also significant and that the World Models agent was able to achieve record performance in one of the environments it was tested in.
+
+%While the end-to-end World Models agent was able to achieve state of the art performance 
+
+% It breaks an agent into three components, the first two are Vision $V$ and Memory $M$, and together these allow an agent to interpret and model its world.
+% The Controller $C$ is then trained using both features of the environment and some of the internal knowledge of $M$.
+% Significantly, the internal model comprised of $V$ and $M$ is powerful enough to recreate a simulated version of the original environment, known as a \textit{dream}.
+% These dreams were close enough to the original environment that agents could be trained entirely inside a dream to perform well in the original environment.
+% In this project I primarily set out to investigate this part of World Models, which consists of the $V$ and $M$ components.
 
 The structure of this report is as follows.
 We begin with a brief overview of the World Models' architecture which serves as the primary motivation throughout this report.
@@ -140,7 +147,7 @@ Finally, in the last section I discuss my own implementation and results.
 %\subsection{Problem Description}
 World Models uses a fairly standard description of the reinforcement learning problem.
 Environments are broken down into discrete time steps.
-At a time $t$ an agent receives a partial observation of the environment $o_t$ and are reward $r_t$.
+At a timestep $t$ an agent receives a partial observation of the environment $o_t$ and are reward $r_t$.
 The agent must then choose an action $a_t$ from a set of possible actions.
 In an \textit{episodic} task where there are only ever finitely many time steps the agent's task is to pick $a_t$ such that the sum of future rewards is maximised.
 In a \textit{continuing} task where the environment is ongoing an agent instead picks $a_t$ to maximise a weighted sum of future rewards where more distant rewards are weighted with decreasing values to ensure the sum converges.
@@ -170,13 +177,13 @@ In this environment observations are first person images from the perspective of
 
 %overview of model V-M-C
 The World Models' architecture is split into three components: \textit{Vision (V), Memory (M)}, and \textit{Controller (C)}.
-The Vision component is comprised of an variational autoencoder.
-It takes in an image observation $o$ and gives a much smaller vector $z$, known as the \textit{latent representation}, which we can think of as a compressed version of $o$.
+The Vision component %is comprised of an variational autoencoder.
+takes in an image observation $o$ and gives a much smaller vector $z$, known as the \textit{latent state}, which we can think of as a compressed version of $o$.
 The idea behind this compression is that it will be easier to learn an internal model of the dynamics of this smaller latent state than to try predict the evolution of the observation images. 
-The Memory component is a Mixture Density Reccurrent Neural Net (MDRNN) and forms the bulk of agent's internal model.
+The Memory component forms the bulk of agent's internal model.
 Given the current latent state $z_t$, an action $a_t$, and its own memory output $h_{t}$ from the previous state, $M$ is trained to predict the distribution of the next latent state $z_{t+1}$ will be given that action.
 That is, $M$ learns the distribution $p(z_{t+1} | z_t, a_t, h_t)$.
-Finally, the Controller learns a simple linear mapping from the latent state $z$ and previous memory state $h$ to an action. 
+Finally, the Controller is trained to choose the optimal action $a_t$ based on both the current latent state $z_t$ given to it by $V$ and the internal state $h_{t-1}$ from $M$. 
 
 \begin{figure}[h]
   \centering
@@ -588,12 +595,9 @@ Since World Models uses a least squares loss rather than the more probabilistic 
 %CITEME https://arxiv.org/pdf/1312.6114.pdf
 
 \section{Memory}
-In partially observable 
-
 The Memory component $M$ of World Models forms the bulk of the agent's internal model.
 It is trained to learn the probability distribution $p(z_{t+1} | z_t, a_t, h_t)$ which when combined with the Vision component can be used to produce interactive dreams of the agent's environment.
-The agent is able to harness this predictive ability by accessing via an internal memory state $h$ of $M$ that is one of the features given to the Controller $C$.
-The architecture of $M$ is a neural network known as a Mixture Density Reccurrent Neural Network.
+$M$ consists of a neural network known as a Mixture Density Reccurrent Neural Network (MDRNN).
 This has two components: the input LSTM layer which provides the memory functionality and the output Mixture Density layer which allows the network to output a probability distribution. 
 
 \begin{figure}[h]
@@ -715,13 +719,13 @@ This has two components: the input LSTM layer which provides the memory function
 Recurrent neural nets (RNNs) are common in problems where data is sequential, for example text, audio or video data.
 RNNs are composed of one or more reccurrent layers.
 In addition to taking an element of the sequence (like a  word, note, or image) as their input these recurrent layers are also given their own output on the previous element of the sequence.
-Since this output in turn depends on the output of the network on the element before that the result is a sequential reccurence as depicted in Figure \ref{memFig}.
+Since this output in turn depends on the output of the layer on the element before that (and so on) that the result is a sequential reccurence as depicted in Figure \ref{memFig}.
 
 Classical fully connected RNNs often suffer from what is known as the \textit{vanishing gradient problem}. %CITEME Untersuchungen zu dynamischen neuronalen Netzen
 Essentially, the chain rule means the backpropgation is multiplicative across the recurrent connections.
 Thus gradient information decays (or explodes) exponentially with the distance in the sequence, making it hard for classical RNNs to learn to maintain long term memory. 
 Long Short Term Memory Networks (LSTMs) are designed to address this problem.
-They do this by maintaining separate protected memory cells $c$ which can only be changed or read by the network through a series of gates.
+They do this by maintaining separate protected memory cells $c$ which can only be changed or read by the network through a series of gates, ensuring that gradient contributions remain constant over time.
 At a timestep $t$ an LSTM layer reads in input $x_t$, as well as its own previous cell value $c_{t-1}$ and previous output $h_{t-1}$.
 It computes both new cell values $c_t$ and output $h_t$, however the network at that time step is only given $h_t$ and does not directly see $c_t$.
 At each timestep the memory cells go through three gates, each with its own learned weights.
@@ -855,19 +859,24 @@ Finally the output gate scales $\tanh(c_t)$ by $\sigma( W_o\cdot [h_{t-1},x_t]+b
   
   
   \end{tikzpicture}
-\caption{An LSTM layer. The forget, input, and output gates are outlined in blue from left to right.}
+\caption{An LSTM layer. The forget, input, and output gates are outlined in blue from left to right. Diagram modeled on } %CITEME
 \end{figure}
 \subsection{Mixture Density Nets}
 A mixture density net (MDN) is a type of feedforward neural net, categorised by its output layer and loss function, that learns probability distributions.
-That is, given an input vector $x$, rather than returning a prediction $z$ an MDN returns a distribution of predictions $p(z)$.
+That is, given an input vector $x$, rather than returning a prediction $z$ an MDN returns a distribution of predictions $p(z|x)$.
 This is useful for learning to fit data where an input $x$ might correspond to a wide range of target $z$, for example data coming from multivalued functions.
 The idea is in principle similar to the encoder in a VAE in that we restrict our attention to a parameterised family of distributions and the neural network learns to output these parameters.
 The family we choose is what is known as a \textit{mixture distribution} and consists of a weighted sum or ``mixture'' of a fixed number $K$ of parameterised distributions (``mixture components'').
 Most commonly (and in World Models) mixture components are Gaussians with diagonal covariance matrices, thus the MDN learns a distribution
-$$p(z) = \sum_{k=1}^K \pi_k \mathcal{N}\left(z|\mu_k, \Sigma_k\right)$$
+$$p(z|x) = \sum_{k=1}^K \pi_k \mathcal{N}\left(z|\mu_k, \Sigma_k\right)$$
 with mixture weights $\pi_k$, means $\mu_k$ and covariances $\Sigma_k$.
 Note that we must have $\sum_{k=1}^K \pi_k = 1$ for this distribution to correctly integrate to one.
 
+% \begin{figure}[h]
+%   \centering
+
+%   \caption{A Gaussian Mixture Model.}
+% \end{figure}
 %MDNs are trained by to minimise the average 
 
 The functional form of a mixture distribution has several advantages.
@@ -889,7 +898,7 @@ MDNs may have very different hidden layer architectures so it is often more help
 Activation functions in this output layer are chosen to ensure the output $\pi$, $\mu$ and $\Sigma$ describe valid probability distributions.
 Typically this involves using a softmax activation for the $\pi_k$ to ensure they sum to one, and strictly positive activation such as ELU+1 for the components of each $\Sigma_k$ to ensure each $\Sigma_k$ is positive definite.
 
-\subsection{Mixture Density Recurrent Neural Nets}
+\subsection{MDRNNs and Dreams}
 
 \begin{figure}
   \centering
@@ -949,9 +958,51 @@ Typically this involves using a softmax activation for the $\pi_k$ to ensure the
 \caption{A mixture density output layer. }
 \end{figure}
 
-\section{C}
+\section{Controller}
+The Controller $C$ is the part of the World Models agent that actually makes decisions.
+It takes in the current latent state $z_t$ from $V$ and the current internal state $h_{t-1}$ from $M$ and uses these to decide on an action $a_t$.
+In fact the action is chosen using a simple learned linear model
+$$a_t = W_C [z_t, h_t] + b_C$$
+with an action-space specific activation function.
+At first glance it might seem like a linear model is overly simplistic, however the beauty of the World Models' architecture is that it offloads the complexity of the agent into the $V$ and $M$ components.
+We can think of these components as unsupervised feature extraction techniques as they effectively learn to output highly relevant predictive features of the environment.
+Equipped with these features $C$ is able to harness the information they contain about environment dynamics, rather than learning its own complex relationship between observations, decisions and rewards.
+
+The benefit of using a simpler controller is that it avoids the credit assignment problem mentioned in the introduction.
+Less weights to learn means searching the weight space is easier, and by using a single layer we don't have to deal with the vanishing gradient problems which plague deep reinforcement learning models.
+In fact the Controller's weight space is small enough that we don't need to employ traditional gradient methods at all.
+Instead $C$ is trained using an evolutionary algorithm known as Covariance Matrixe Adaptation Evolutionary Strategy (CMA-ES).
+In each \textit{generation} of this algorithm a population of agents is sampled from a normal distribution over the weight space of the Controller.
+Each member of the population participates in several trial rollouts of the environment.
+A certain proportion of the population's best performing or ``fittest'' agents are selected and their weights are used to update the mean and covariance of the normal distribution for the next generation.
+CMA-ES is a relatively sophisticated evolutionary algorithm and its advantage over more simplistic methods is that by adjusting its covariance matrix it can explore more widly when the fittest solutions are more far apart and exploit more narrowly if they are closer together.
+
+
+\begin{figure}[h]
+  \centering
+  \begin{minipage}{0.4\textwidth}
+      \centering
+      \includegraphics[width=0.9\textwidth]{cmaes_step1.png} % first figure itself
+      \caption{CMA-ES: A narrow population resulting from a smaller covariance matrix. Credits: }%CITEME https://blog.otoro.net/2017/10/29/visual-evolution-strategies/
+  \end{minipage}\hfill
+  \begin{minipage}{0.4\textwidth}
+      \centering
+      \includegraphics[width=0.9\textwidth]{cmaes_step4.png} % second figure itself
+      \caption{CMA-ES: A wider population resulting from a larger covariance matrix} %CITEME
+  \end{minipage}
+\end{figure}
+
+
+
 
 \section{Results?}
+%Exact architectures
+%Training graph for VAE, LSTM
+%reconstruction pictures
+%VAE generative pictures
+%Pictures from dream?
+
+
 
 \section{The gym environment}
 
