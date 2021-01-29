@@ -369,13 +369,15 @@ Finally, the Controller is trained to choose the optimal action $a_t$ based on b
 
 
 \section{Vision}
-%autoencoders (show old example?)
-%show new example
-The Vision component consists of a Variational Autoencoder (VAE) which simultaneously trains both an encoder and decoder.
-The encoder learns to compress image observations into smaller latent representations and the decoder learns to reconstruct the original observations from the latent representations.
-VAEs are not particularly new technology, however their use in World Models is perhaps the most novel component of the paper. %TODO mention previous attempts, lack of stability
-Observations in the two environments investigated by Ha et al are $64 \times 64$ pixel images with 3 colour channels, and thus represented by 12288 dimensional vectors.
-The Vision component manages to compress each observation into 32 dimensional latent representation, which can then be used...
+As mentioned earlier the Vision component $V$ learns a mapping from the high dimensional image observations $o_t$ to much lower dimensional latent representations $z_t$.
+It does this in an unsupervised manner using a network known as a Variational Autoencoder (VAE), allowing $V$ to be trained before $M$ and $C$.
+In this section we discuss the theory behind VAEs in a slightly broader context and for the specifics of the World Models implementation you should see \ref{VAEsubsec}.
+
+% The Vision component consists of a Variational Autoencoder (VAE) which simultaneously trains both an encoder and decoder.
+% The encoder learns to compress image observations into smaller latent representations and the decoder learns to reconstruct the original observations from the latent representations.
+% VAEs are not particularly new technology, however their use in World Models is perhaps the most novel component of the paper. %TODO mention previous attempts, lack of stability
+% Observations in the two environments investigated by Ha et al are $64 \times 64$ pixel images with 3 colour channels, and thus represented by 12288 dimensional vectors.
+% The Vision component manages to compress each observation into 32 dimensional latent representation, which can then be used...
 
 
 
@@ -631,7 +633,8 @@ Since World Models uses a least squares loss rather than the more probabilistic 
 The Memory component $M$ of World Models forms the bulk of the agent's internal model.
 It is trained to learn the probability distribution $p(z_{t+1} | z_t, a_t, h_t)$ which when combined with the Vision component can be used to produce interactive dreams of the agent's environment.
 $M$ consists of a neural network known as a Mixture Density Reccurrent Neural Network (MDRNN).
-This has two components: the input LSTM layer which provides the memory functionality and the output Mixture Density layer which allows the network to output a probability distribution. 
+This has two components: the input LSTM layer which provides the memory functionality and the output Mixture Density layer which allows the network to output a probability distribution.
+Similarly to the last section this section gives a somewhat broad description of MDRNNs, and World Models specific implementation details can be found in \ref{MDRNNsubsec}.
 
 \begin{figure}[h]
   \centering
@@ -1016,15 +1019,14 @@ Once training is complete we follow a simple algorithm in order to generate a dr
     \item Set $t := t+1$
   \end{enumerate}
 \end{enumerate}
+Dreams can be rendered in real time by putting each generated latent vector into the $V$'s decoder to make them resemble image observations.
 In step 3c a variance controlling term $\tau$ can be used to encourage more chaotic dreams.
 David Ha recommends this term be increased for agents trained entirely inside dreams to prevent overfitting from an agent learning to exploit the dream.
 
-Dreams can be rendered in real time by putting each generated latent vector into the $V$'s decoder to make them resemble image observations.
-In addition to a compressed representation making the sequence dynamics easier to learn the use of the VAE has a second advantage.
-Since
-
-%begin in some initial state $z_0$, choose an action $a_0$ from a policy or human interaction and then sample $z_1$ from $p(z_{1} | z_0, a_0, h_0)$, and then continue iteratively.
-
+In addition to the compressed representation making the sequence dynamics easier to learn the use of the VAE has a second advantage.
+Since the encoder learns a probability distribution its encoding are necessarily noisy and so the decoder learns to be robust with respect to its inputs.
+Thus mildly unrealistic latent vectors $z_t$ in the dream sequence don't result in complete decoherence as the decoder is still able to make them look somewhat reasonable.
+It is this feature that enables the long term stability of World Models dreams.
 
 \section{Controller}
 The Controller $C$ is the part of the World Models agent that actually makes decisions.
@@ -1090,7 +1092,7 @@ All environments include a \texttt{.render()} method which allows us to visualis
       observation = env.reset()
   env.close()
 \end{lstlisting}
-\caption{A basic rollout loop for the \texttt{CarRacing-v0} environment which simulates 1000 steps}
+\caption{A basic rollout loop for the \texttt{CarRacing-v0} environment}
 \end{figure}
 
 Gym is packaged with a number of default environments which can pretty much be used out of the box.
@@ -1103,13 +1105,39 @@ The \texttt{VizDoom: Take Cover} environment used in World Models is also a gym 
 
 Gym Retro is a project which turns old videogames into gym environments. %CITEME
 Retro interfaces with console emulators supporting the \href{https://www.libretro.com/index.php/api/}{Libretro API} to run the games and currently supports a variety of Nintendo, Atari, NEC, and Sega consoles.
-
 Environments within Retro must be partially human created in a process known as integration.
+This involves defining a starting state for the environment as well as a reward function and finishing condition.
+By default observations are screen images and actions are button presses, however custom choices are possible.
+Retro provides a fantastic integration UI which is used to search game memory for variables such as score or lives to base the reward function on.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[scale=0.15]{integrationUI.png}
+  \caption{SimCity in the Retro integration UI}
+\end{figure}
+
+I used the integration UI to make my own integration of the 1991 game SimCity\footnote{Originally I had planned to use the \texttt{gym-city} environment but I found it to be extremely buggy and lacking documentation.} released on the Super Nintendo Entertainment System (SNES).
+In SimCity the player is tasked with planning a functioning city on a square grid map.
+The player designates zones for residential, commercial, or industrial constructions and lays down infrastructure such as roads, railways, and powerlines.
+The city grows acccording to complex cellular-automaton-like rules and the player must add to it and adapt it as issues arise.
+In my integration I defined the starting state to be a completely unbuilt city.
+I used the default image based observations as well as observations corresponding to the city's population and budget which I used the integration UI to locate in game memory.
+One thing to note here is that SimCity actually counts population in multiples of 10 so to find the population I had to search game memory for a value one tenth of the displayed valued.
+As a reward function I chose population delta, with the ultimate goal of reaching 10,000 population.
+
+Unfortunately I was unable to get my integration to run as a gym environment due to a \href{https://github.com/openai/retro/issues/115}{bug} which appears to be specific to the SNES emulator used.
+Essentially Retro was only able to access game memory inside the integration UI and not inside the gym environment.
+This meant that the environment would crash whenever I queried it for memory information.
+In addition to making it impossible to define a reward function this meant I was not able to implement custom actions to circumvent the difficulty of learning to navigate the in game UI by button presses.
+Ultimately I ended up using a severely reduced environment which started with a preplanned but undeveloped city and simply recorded its growth.
+
 
 
 \subsection{The VAE}
+\label{VAEsubsec}
 
 \subsection{The MDRNN}
+\label{MDRNNsubsec}
 
 
 %Exact architectures
@@ -1118,9 +1146,7 @@ Environments within Retro must be partially human created in a process known as 
 %VAE generative pictures
 %Pictures from dream?
 
-
-
-
+\section{Conclusion and Further Work}
 
 %\clearpage
 %\bibliography{ref} 
