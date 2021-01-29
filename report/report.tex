@@ -25,14 +25,38 @@
  
 \definecolor{mypink1}{rgb}{0.858, 0.188, 0.478}
 
-%\usepackage{color}
-%\definecolor{keywordcolor}{rgb}{0.7, 0.1, 0.1}   % red
-%\definecolor{commentcolor}{rgb}{0.4, 0.4, 0.4}   % grey
-%\definecolor{symbolcolor}{rgb}{0.0, 0.1, 0.6}    % blue
-%\definecolor{sortcolor}{rgb}{0.1, 0.5, 0.1}      % green
-%\usepackage{listings}
+
+\usepackage{listings}
 %\def\lstlanguagefiles{lstlean.tex} 
 %\lstset{language=lean}
+
+\usepackage[utf8]{inputenc}
+\usepackage{listings}
+%\usepackage{xcolor}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{pystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
 
 \usepackage{enumitem}
 \usepackage{tikz-cd}
@@ -70,6 +94,8 @@
 \bibliographystyle{humannat}
 %\bibliographystyle{unsrtnat}
 %\bibliographystyle{abbrvnat}
+
+\numberwithin{figure}{section}
 
 \theoremstyle{definition}
 \newcounter{dummy} \numberwithin{dummy}{section}
@@ -110,6 +136,12 @@ When humans make decisions we often use an internal model of the problem at hand
 This model based approach may be something we are conscious of, as in the case of a chess player who uses their knowledge to look ahead and evaluate potential moves.
 It also happens unconsciously, for example with batters in baseball who use an internal model to infer the position of the ball based on the the way the pitcher throws it, rather than reacting to the position of the ball milliseconds before it hits their bat.
 In either case this internal model greatly improves our performance at these tasks.
+
+% \begin{figure}[h]
+%   \centering
+%   \includegraphics[scale=0.2]{pitch.jpeg}
+
+% \end{figure}
 
 In reinforcement learning we seek to develop computer agents which are capable of \textit{learning} to complete tasks.
 Inspired by the success of own model based thought process we naturally seek to equip these agents with models of their environment.
@@ -177,8 +209,9 @@ In this environment observations are first person images from the perspective of
 
 %overview of model V-M-C
 The World Models' architecture is split into three components: \textit{Vision (V), Memory (M)}, and \textit{Controller (C)}.
+These models are trained in order as each one depends on the output of the previous.
 The Vision component %is comprised of an variational autoencoder.
-takes in an image observation $o$ and gives a much smaller vector $z$, known as the \textit{latent state}, which we can think of as a compressed version of $o$.
+takes in an image observation $o_t$ and gives a much smaller vector $z_t$, known as the \textit{latent state}, which we can think of as a compressed version of $o_t$.
 The idea behind this compression is that it will be easier to learn an internal model of the dynamics of this smaller latent state than to try predict the evolution of the observation images. 
 The Memory component forms the bulk of agent's internal model.
 Given the current latent state $z_t$, an action $a_t$, and its own memory output $h_{t}$ from the previous state, $M$ is trained to predict the distribution of the next latent state $z_{t+1}$ will be given that action.
@@ -720,6 +753,7 @@ Recurrent neural nets (RNNs) are common in problems where data is sequential, fo
 RNNs are composed of one or more reccurrent layers.
 In addition to taking an element of the sequence (like a  word, note, or image) as their input these recurrent layers are also given their own output on the previous element of the sequence.
 Since this output in turn depends on the output of the layer on the element before that (and so on) that the result is a sequential reccurence as depicted in Figure \ref{memFig}.
+RNNs are trained by gradient descent by evaluating the \textit{unrolled} network's output on an entire sequence and using backpropagation to propagate gradients both vertically through the network and horizontally through time.
 
 Classical fully connected RNNs often suffer from what is known as the \textit{vanishing gradient problem}. %CITEME Untersuchungen zu dynamischen neuronalen Netzen
 Essentially, the chain rule means the backpropgation is multiplicative across the recurrent connections.
@@ -898,8 +932,6 @@ MDNs may have very different hidden layer architectures so it is often more help
 Activation functions in this output layer are chosen to ensure the output $\pi$, $\mu$ and $\Sigma$ describe valid probability distributions.
 Typically this involves using a softmax activation for the $\pi_k$ to ensure they sum to one, and strictly positive activation such as ELU+1 for the components of each $\Sigma_k$ to ensure each $\Sigma_k$ is positive definite.
 
-\subsection{MDRNNs and Dreams}
-
 \begin{figure}
   \centering
 
@@ -958,6 +990,42 @@ Typically this involves using a softmax activation for the $\pi_k$ to ensure the
 \caption{A mixture density output layer. }
 \end{figure}
 
+\subsection{MDRNNs and Dreams}
+
+MDRNNs combine both intermediate recurrent layers and an MDN output layer as depicted in Figure \ref{memFig}. 
+Their stochastic output makes them great candidates for generative sequence prediction and they have seen a variety of applications, including in systems that complete human drawings or compose responses to human generated music. %CITEME
+In standard sequence prediction an RNN reads in a sequence and at each timestep learns to predict what the next element of the sequence will be.
+MDRNNs operate on basically the same principle except they generate a probability distribution of the next sequence element and thus allow for stochastic generation of different sequences from the same starting point.
+
+% \begin{figure}[h]
+%   \centering
+%   \includegraphics[scale=0.2]{catssketch.png}
+% \end{figure}
+
+In World Models the MDRNN $M$ engages in a form of sequence prediction.
+Given a sequence of latent states $(z_t)$ and actions $(a_t)$, it is trained to predict the distribution $p(z_{t+1} | z_t, a_t, h_t)$.
+Once training is complete we follow a simple algorithm in order to generate a dream:
+\begin{enumerate}
+  \item Choose an initial $z_0$ either randomly or from the start of a real sequence 
+  \item Set $h_0 := 0$ and $t:=0$
+  \item Repeat for the duration of the dream:
+  \begin{enumerate}
+    \item Choose an action $a_t$ from a policy or human interaction
+    \item Compute $p(z_{t+1} | z_t, a_t, h_t)$ and let $h_{t+1}$ be the output of the LSTM layer
+    \item Sample $z_{t+1}$ from $p(z_{t+1} | z_t, a_t, h_t)$
+    \item Set $t := t+1$
+  \end{enumerate}
+\end{enumerate}
+In step 3c a variance controlling term $\tau$ can be used to encourage more chaotic dreams.
+David Ha recommends this term be increased for agents trained entirely inside dreams to prevent overfitting from an agent learning to exploit the dream.
+
+Dreams can be rendered in real time by putting each generated latent vector into the $V$'s decoder to make them resemble image observations.
+In addition to a compressed representation making the sequence dynamics easier to learn the use of the VAE has a second advantage.
+Since
+
+%begin in some initial state $z_0$, choose an action $a_0$ from a policy or human interaction and then sample $z_1$ from $p(z_{1} | z_0, a_0, h_0)$, and then continue iteratively.
+
+
 \section{Controller}
 The Controller $C$ is the part of the World Models agent that actually makes decisions.
 It takes in the current latent state $z_t$ from $V$ and the current internal state $h_{t-1}$ from $M$ and uses these to decide on an action $a_t$.
@@ -995,7 +1063,55 @@ CMA-ES is a relatively sophisticated evolutionary algorithm and its advantage ov
 
 
 
-\section{Results?}
+\section{Implementation}
+I wrote a replication of the $V$ and $M$ components of World Models.
+I trained and tested these models in the \texttt{CarRacing-v0} environment as well as a \texttt{SimCity-Snes} environment that I built within OpenAI's gym retro system. %CITEME
+
+\subsection{OpenAI Gym}
+OpenAI Gym is an open source interface for reinforcement learning environments.
+It implements an environment class \texttt{Env} which encapsulates the information in an environment such as observations, actions, rewards, etc.
+This object-oriented design makes it easy to write code for arbitrary environments as we can reuse common structures like rollout loops.
+Environments are simulated frame by frame and the programmer chooses when to advance to the next frame using the \texttt{.step()} method which also returns the next observation and reward as well as other information.
+This design means that environments can be run in faster than real time during rollouts or training, but also stepped through slowly for debugging purposes.
+All environments include a \texttt{.render()} method which allows us to visualise their state.
+
+\lstset{style=pystyle}
+\begin{figure}[h]
+\begin{lstlisting}[language=Python]
+  import gym
+  env = gym.make("CarRacing-v0")
+  observation = env.reset()
+  for _ in range(1000):
+    env.render()
+    action = env.action_space.sample() # your agent here (this takes random actions)
+    observation, reward, done, info = env.step(action)
+  
+    if done:
+      observation = env.reset()
+  env.close()
+\end{lstlisting}
+\caption{A basic rollout loop for the \texttt{CarRacing-v0} environment which simulates 1000 steps}
+\end{figure}
+
+Gym is packaged with a number of default environments which can pretty much be used out of the box.
+The \texttt{CarRacing-v0} environment is one such environment, coming in the \texttt{Box2D} environment collection, and I used this in my implementation.
+A leaderboard of model performance is hosted \href{https://github.com/openai/gym/wiki/Leaderboard}{here} and as of the time of writing David Ha still holds the record in \texttt{CarRacing-v0}.
+It is also possible to write custom Gym environments and it has become somewhat of a defacto standard in the reinforcement learning community to implement RL environments this way.
+The \texttt{VizDoom: Take Cover} environment used in World Models is also a gym environment.
+
+\subsection{Gym Retro}
+
+Gym Retro is a project which turns old videogames into gym environments. %CITEME
+Retro interfaces with console emulators supporting the \href{https://www.libretro.com/index.php/api/}{Libretro API} to run the games and currently supports a variety of Nintendo, Atari, NEC, and Sega consoles.
+
+Environments within Retro must be partially human created in a process known as integration.
+
+
+\subsection{The VAE}
+
+\subsection{The MDRNN}
+
+
 %Exact architectures
 %Training graph for VAE, LSTM
 %reconstruction pictures
@@ -1004,7 +1120,7 @@ CMA-ES is a relatively sophisticated evolutionary algorithm and its advantage ov
 
 
 
-\section{The gym environment}
+
 
 %\clearpage
 %\bibliography{ref} 

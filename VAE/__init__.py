@@ -1,5 +1,6 @@
 import numpy as np
 
+import keras
 import tensorflow as tf
 from tensorflow.keras.layers import Input, Conv2D, Flatten, Dense, Conv2DTranspose, Lambda, Reshape, Layer
 from tensorflow.keras.models import Model
@@ -190,10 +191,12 @@ class VAE():
 
     def train(self, data, epochs = 1):
         #print(data.shape)
+        tensorboard_callback = keras.callbacks.TensorBoard(log_dir='./logs/')
         self.full_model.fit(data, data,
                 shuffle=True,
                 epochs=epochs,
-                batch_size=BATCH_SIZE)
+                batch_size=BATCH_SIZE,
+                callbacks = [tensorboard_callback])
         
     def save_weights(self, filepath):
         self.full_model.save_weights(filepath)

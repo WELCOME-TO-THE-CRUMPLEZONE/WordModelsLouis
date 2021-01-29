@@ -190,6 +190,8 @@ class WorldModel():
         for file in filelist:
             try:
                 new_data = np.load(DIR_NAME + file)['obs']/255
+                # we put this here because the video data isn't generated the same way
+
                 print(new_data.shape)
                 #new_data = tf.image.resize(new_data, [64,64])
                 #resizing should happen when recordin data
