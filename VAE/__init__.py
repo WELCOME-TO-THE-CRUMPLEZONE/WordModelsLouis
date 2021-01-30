@@ -189,14 +189,13 @@ class VAE():
     def set_weights(self, filepath):
         self.full_model.load_weights(filepath)
 
-    def train(self, data, epochs = 1):
+    def train(self, data, epochs = 1, callbacks = None):
         #print(data.shape)
-        tensorboard_callback = keras.callbacks.TensorBoard(log_dir='./logs/')
         self.full_model.fit(data, data,
                 shuffle=True,
                 epochs=epochs,
                 batch_size=BATCH_SIZE,
-                callbacks = [tensorboard_callback])
+                callbacks = callbacks)
         
     def save_weights(self, filepath):
         self.full_model.save_weights(filepath)

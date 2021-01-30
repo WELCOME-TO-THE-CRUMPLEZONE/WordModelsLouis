@@ -1,5 +1,6 @@
 import numpy as np
 import tensorflow as tf
+import keras
 import gym
 import retro
 import random
@@ -147,11 +148,25 @@ class WorldModel():
         print(data.shape)
         #print(vae.encoder.summary())
         #print(vae.decoder.summary())
-        for epoch in range(epochs):
-            print('EPOCH', str(epoch))
-            vae.save_weights('./VAE/weights/' + self.name +'.ckpt')
-            vae.train(data, epochs = 1)
-        vae.save_weights('./VAE/weights/' + self.name +'.ckpt')
+        checkpoint_path = './VAE/weights/' + self.name +'.ckpt'
+        checkpoint_dir = os.path.dirname(checkpoint_path)
+
+        # Create a callback that saves the model's weights
+        cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
+                save_weights_only=True,
+                verbose=1)
+
+        # Create a callback that logs training loss
+        tensorboard_callback = keras.callbacks.TensorBoard(log_dir='./logs/')
+
+        callbacks = [tensorboard_callback, cp_callback]
+
+        vae.train(data, epochs = epochs, callbacks = callbacks)
+        #for epoch in range(epochs):
+        #    print('EPOCH', str(epoch))
+        #    vae.save_weights('./VAE/weights/' + self.name +'.ckpt')
+        #    vae.train(data, epochs = 1)
+        #vae.save_weights('./VAE/weights/' + self.name +'.ckpt')
 
     def load_vae(self, new_model):
         if self.vae != None:
