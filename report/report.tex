@@ -518,7 +518,7 @@ This added element of randomness is useful for reasons we will discuss shortly.
 We would like to train the variational autoencoder the same way we train traditional autoencoders, using backpropagation to compute the gradient of a loss function.
 However, we cannot do this directly since there is no way to evaluate gradients through the random sampling process.
 We get around this issue with something known as the ``reparamaterisation trick''.
-Any time a datapoint is seen during training we sample an $\epsilon$ from the unit variance, zero mean gaussian with dimension the same as $z$.
+Any time a datapoint is seen during training we sample an $\epsilon$ from the zero mean, unit covariance gaussian with dimension the same as $z$.
 Given output vectors $\mu$ and $\sigma$ from the Encoder representing the mean and covariance of $q(z|x)$ respectively, we find that $z = \mu + \sigma \odot \epsilon$ is distributed according to $q(z|x)$.
 Then for each individual datapoint we treat its sampled $\epsilon$ as a constant so that $z$ is just a function of the original input and the Encoder's weights.
 This allows us to give the resulting $z$ to the Decoder and compute the gradient of the resulting loss function via backpropagation.
@@ -759,12 +759,11 @@ Similarly to the last section this section gives a somewhat broad description of
 Recurrent neural nets (RNNs) are common in problems where data is sequential, for example text, audio or video data.
 RNNs are composed of one or more reccurrent layers.
 In addition to taking an element of the sequence (like a  word, note, or image) as their input these recurrent layers are also given their own output on the previous element of the sequence.
-Since this output in turn depends on the output of the layer on the element before that (and so on) that the result is a sequential reccurence as depicted in Figure \ref{memFig}.
+Since this output in turn depends on the output of the layer on the element before that (and so on) the result is a sequential reccurence as depicted in Figure \ref{memFig}.
 RNNs are trained by gradient descent by evaluating the \textit{unrolled} network's output on an entire sequence and using backpropagation to propagate gradients both vertically through the network and horizontally through time.
 
 Classical fully connected RNNs often suffer from what is known as the \textit{vanishing gradient problem} \citep{hochreiter1991untersuchungen}.
-Essentially, the chain rule means the backpropgation is multiplicative across the recurrent connections.
-Thus gradient information decays (or explodes) exponentially with the distance in the sequence, making it hard for classical RNNs to learn to maintain long term memory. 
+Essentially, the chain rule means the backpropgation is multiplicative across the recurrent connections and thus gradient information decays (or explodes) exponentially with the distance in the sequence, making it hard for classical RNNs to learn to maintain long term memory. 
 Long Short Term Memory Networks (LSTMs) are designed to address this problem.
 They do this by maintaining separate protected memory cells $c$ which can only be changed or read by the network through a series of gates, ensuring that gradient contributions remain constant over time.
 At a timestep $t$ an LSTM layer reads in input $x_t$, as well as its own previous cell value $c_{t-1}$ and previous output $h_{t-1}$.
@@ -910,7 +909,7 @@ The idea is in principle similar to the encoder in a VAE in that we restrict our
 The family we choose is what is known as a \textit{mixture distribution} and consists of a weighted sum or ``mixture'' of a fixed number $K$ of parameterised distributions (``mixture components'').
 Most commonly (and in World Models) mixture components are Gaussians with diagonal covariance matrices, thus the MDN learns a distribution
 $$p(z|x) = \sum_{k=1}^K \pi_k \mathcal{N}\left(z|\mu_k, \Sigma_k\right)$$
-with mixture weights $\pi_k$, means $\mu_k$ and covariances $\Sigma_k$.
+with mixture weights $\pi_k$, means $\mu_k$ and covariances $\Sigma_k$ as its output.
 Note that we must have $\sum_{k=1}^K \pi_k = 1$ for this distribution to correctly integrate to one.
 
 % \begin{figure}[h]
@@ -921,11 +920,10 @@ Note that we must have $\sum_{k=1}^K \pi_k = 1$ for this distribution to correct
 %MDNs are trained by to minimise the average 
 
 The functional form of a mixture distribution has several advantages.
-There is a relatively large degree of flexibility in the distributions that can be learned.
-The use of multiple mixtures allows the learning of multimodal or skewed distributions which would not be possible with a single Gaussian.
+There is a relatively large degree of flexibility in the distributions that can be learned as the use of multiple mixtures allows the learning of multimodal or skewed distributions which would not be possible with a single Gaussian.
 We are also able to easily sample from mixture distributions with a small trick.
 Rather than directly sampling from $p(z)$, we first choose randomly choose one of the $K$ components, denoting our choice as $m$, so that the probability of choosing component $k$ is $p(m=k) =\pi_k$. 
-Then we sample\footnote{See \cite{bishop2006pattern} Ch. 11 for an explanation of how to sample from a Gaussian.} $z$ from the corresponding component with probability $\mathcal{N}(z| \mu_m, \Sigma_m)$.
+Then we sample\footnote{See \cite{bishop2006pattern} Ch. 11 for an explanation of how to sample from a Gaussian.} $z$ from the corresponding Gaussian component with probability $\mathcal{N}(z| \mu_m, \Sigma_m)$.
 Effectively we have sampled from a joint distribution $p(m,z)$ and we can marginalise out $m$ to see that our sampled $z$ is sampled according to the desired distribution
 $$p(z) = \sum_{m=1}^K p(m,z) = \sum_{m=1}^K p(m)p(z|m) = \sum_{k=1}^K \pi_m \mathcal{N}\left(z|\mu_m, \Sigma_m\right)$$
 This ability to sample from $p(z)$ is useful for making predictions and we shall see that this is what allows World Models to generate dreams.
@@ -1045,7 +1043,7 @@ Equipped with these features $C$ is able to harness the information they contain
 The benefit of using a simpler controller is that it avoids the credit assignment problem mentioned in the introduction.
 Less weights to learn means searching the weight space is easier, and by using a single layer we don't have to deal with the vanishing gradient problems which plague deep reinforcement learning models.
 In fact the Controller's weight space is small enough that we don't need to employ traditional gradient methods at all.
-Instead $C$ is trained using an evolutionary algorithm known as Covariance Matrixe Adaptation Evolutionary Strategy (CMA-ES).
+Instead $C$ is trained using an evolutionary algorithm known as Covariance Matrix Adaptation Evolutionary Strategy (CMA-ES).
 In each \textit{generation} of this algorithm a population of agents is sampled from a normal distribution over the weight space of the Controller.
 Each member of the population participates in several trial rollouts of the environment.
 A certain proportion of the population's best performing or ``fittest'' agents are selected and their weights are used to update the mean and covariance of the normal distribution for the next generation.
@@ -1139,16 +1137,72 @@ Ultimately I ended up using a severely reduced environment which started with a 
 
 \subsection{The VAE}
 \label{VAEsubsec}
+%Exact architectures
+In the World Models experiments each image observation was a $64\times 64$ image with three colour channels.
+The encoder consisted of four RELU convolutional layers connected to a dense output which learned to represent a 32 dimensional Gaussian.
+The decoder had a dense layer with 1024 neurons followed by four RELU deconvolutional layers.
+I built a VAE in Keras \citep{chollet2015keras} following a very helpful \href{https://tiao.io/post/tutorial-on-variational-autoencoders-with-a-concise-keras-implementation/}{tutorial} and adapting the network architecture to the desired shape.
+For the initial experiment with \texttt{CarRacing-v0} I copied the World Models architecture exactly.
+In the subsequent experiment with \texttt{SimCity-Snes} I had to adapt the VAE to deal with the larger $160 \times 90$ images.
+To do this I used six convolutional and deconvolutional layers instead of four, with rectangular kernels for the deconvolutional layers.
+I decided to keep the dimensions of the dense and latent layers the same, to maintain the ease of learning dynamics of the latent variable, however this was something I would have liked to experiment with given more time.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[scale=0.4]{vae_arch.png}
+  \caption{The original World Models VAE architecture (Credit: \cite{ha2018world})}
+  \label{vaeArchFig}
+\end{figure}
+
+In World Models David Ha trains the VAE for \texttt{CarRacing-v0} by collecting 10,000 random rollouts of the environment and then learning with gradient descent for only one epoch.
+Due to memory constraints I used only 100 random rollouts but trained for 1000 epochs.
+In hinsight I should have been more thorough here and used a test set to check for overfitting.
+I also used a modified policy to encourage acceleration at the beginning of rollouts to more fully explore the environment.
+Since the \texttt{CarRacing-v0} environment actually returns $96 \times 96$ pixel images I used \texttt{tensorflow.Image.resize()} to resize them to $64 \times 64$ pixels.
+With \texttt{SimCity-v0} environmental change is much more long term so I recorded one long epsiode (about 5 minute of in game time).
+Since the images being learned were more complex I trained for 4000 epochs.
+
+%Training graph
+
+% \begin{figure}[h]
+%   \centering
+%   \begin{minipage}{0.3\textwidth}
+%       \centering
+%       \includegraphics[width=0.9\textwidth]{epoch_kl_loss.svg} % first figure itself
+%       \caption{Epoch KL loss}
+%   \end{minipage}\hfill
+%   \begin{minipage}{0.3\textwidth}
+%       \centering
+%       \includegraphics[width=0.9\textwidth]{epoch_reconstruction_loss.svg} % second figure itself
+%       \caption{Epoch reconstruction loss}
+%   \end{minipage}
+%   \begin{minipage}{0.3\textwidth}
+%     \centering
+%     \includegraphics[width=0.9\textwidth]{epoch_loss.svg} % second figure itself
+%     \caption{Epoch combined loss}
+% \end{minipage}
+% \end{figure}
+
+In the \texttt{CarRacing-v0} environment the reconstructed images from my VAE were visually indistinguishable from the originals.
+By contrast the images from \texttt{SimCity-Snes} were visually similar to the originals but had noticeably imperfections.
+I attribute this difference to the fact that the \texttt{SimCity-Snes} observations were both higher dimensional and more visually complex and suspect that it could have been adressed by increasing the dimension of the latent variable and hidden dense layers.
+For both experiments I tried generating new images by sampling from a zero mean unit variance Gaussian and feeding it to the trained decoder.
+The images generated for \texttt{CarRacing-v0} visually somewhat visually resembled the environment but contained glitches such as disconnected tracks or even patches of black learned from the game's initial black border.
+The images generated for \texttt{SimCity-Snes} also resembled the game, with the most obvious visual glitch being incorrect colours palettes, which presumably arise as a form of confusion between the game's different seasonal colour palettes.
+
+%reconstruction pictures
+%TODO VAE generative pictures
 
 \subsection{The MDRNN}
 \label{MDRNNsubsec}
+As mentioned earlier the MDRNNs in World Models consisted of an LSTM input layer and MDN output.
+For \texttt{CarRacing-v0} they used 256 hidden memory cells and for \texttt{VizDoom: Take Cover} they used 512.
+In both experiments they used five mixture components for the MDN output.
+I implemented the MDRNN using Keras' built in LSTM layer and a \href{https://github.com/cpmpercussion/keras-mdn-layer}{Keras MDN layer} implemented by my supervisor.
+For both of my experiments I used 256 memory cells and 5 mixture components.
+The use of more mixture components and memory cells to capture more complex dynamics was something I would have liked to experiment more with given time.
 
-
-%Exact architectures
-%Training graph for VAE, LSTM
-%reconstruction pictures
-%VAE generative pictures
-%Pictures from dream?
+%TODO Dream stuff
 
 \section{Conclusion and Further Work}
 

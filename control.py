@@ -311,23 +311,43 @@ class WorldModel():
         mdrnn = self.load_mdrnn(new_model = restart)
 
         filelist, N = WorldModel.get_filelist(N, vae_rollout_path)
+        
+        z = self.random_batch(filelist, batch_size)
+        print("shape", z.shape)
+        rnn_in = z[:, :-1, :] #np.concatenate([z[:, :-1, :], action[:, :-1, :]], axis = 2)
+        rnn_out = z[:, 1:, :]
+        
+        # Create a callback that saves the model's weights
+        checkpoint_path = './MDRNN/weights/' + self.name +'.ckpt'
+        checkpoint_dir = os.path.dirname(checkpoint_path)
+        cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
+                save_weights_only=True,
+                verbose=1)
 
-        for step in range(steps):
-            print('STEP' + str(step))
+        # Create a callback that logs training loss
+        tensorboard_callback = keras.callbacks.TensorBoard(log_dir='./mdrnn_logs/')
 
-            #z , action, rew, done = random_batch(filelist, batch_size)
-            z = self.random_batch(filelist, batch_size)
-            rnn_in = z[:, :-1, :] #np.concatenate([z[:, :-1, :], action[:, :-1, :]], axis = 2)
-            rnn_out = z[:, 1:, :]
+        callbacks = [tensorboard_callback, cp_callback]
 
-            mdrnn.train(rnn_in, rnn_out)
 
-            if step % 10 == 0:
-                mdrnn.model.save_weights('./MDRNN/weights/' + self.name +'.ckpt')
-                print("Saved weights")
 
-        mdrnn.model.save_weights('./MDRNN/weights/' + self.name +'.ckpt')
-        print("Saved weights")
+        mdrnn.train(rnn_in, rnn_out, epochs = steps, callbacks=callbacks)
+        #for step in range(steps):
+        #    print('STEP' + str(step))
+
+        #    #z , action, rew, done = random_batch(filelist, batch_size)
+        #    z = self.random_batch(filelist, batch_size)
+        #    rnn_in = z[:, :-1, :] #np.concatenate([z[:, :-1, :], action[:, :-1, :]], axis = 2)
+        #    rnn_out = z[:, 1:, :]
+
+        #    mdrnn.train(rnn_in, rnn_out)
+
+        #    if step % 10 == 0:
+        #        mdrnn.model.save_weights('./MDRNN/weights/' + self.name +'.ckpt')
+        #        print("Saved weights")
+
+        #mdrnn.model.save_weights('./MDRNN/weights/' + self.name +'.ckpt')
+        #print("Saved weights")
 
     def load_mdrnn(self, new_model = False, in_dim = 32, out_dim = 32, lstm_units=256, n_mixes=5):
         if self.mdrnn != None:
@@ -350,6 +370,7 @@ class WorldModel():
             indices = range(start_index, start_index+batch_size)
         #indices = np.random.permutation(N_data)[0:batch_size]
         assert len(indices) == batch_size
+        indices = [i for i in range(N_data)]
 
         z_list = []
         #action_list = []

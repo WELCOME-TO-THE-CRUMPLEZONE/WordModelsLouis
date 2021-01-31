@@ -1,4 +1,5 @@
 import tensorflow as tf
+import numpy as np
 
 from tensorflow.keras.layers import Input, LSTM, Dense
 from tensorflow.keras.optimizers import Adam
@@ -47,6 +48,7 @@ class MDRNN():
             assert z_pred.shape[-1] == (2*self.out_dim + 1)*self.n_mixes
 
             z_loss = mdn.get_mixture_loss_func(self.out_dim, self.n_mixes)(z_true, z_pred)
+
             return z_loss
 
         opti = Adam(lr=LEARNING_RATE)
@@ -54,11 +56,12 @@ class MDRNN():
 
         return (model, forward)
 
-    def train(self, rnn_in, rnn_out):
+    def train(self, rnn_in, rnn_out, epochs=1, callbacks=None):
         self.model.fit(rnn_in, rnn_out,
                 shuffle=False,
-                epochs=1,
-                batch_size=len(rnn_in))
+                epochs=epochs,
+                batch_size=len(rnn_in),
+                callbacks=callbacks)
 
     def save_weights(self, filepath):
         self.model.save_weights(filepath)

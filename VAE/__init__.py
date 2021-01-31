@@ -195,7 +195,7 @@ class VAE():
                 shuffle=True,
                 epochs=epochs,
                 batch_size=BATCH_SIZE,
-                callbacks = callbacks)
+                callbacks =callbacks)
         
     def save_weights(self, filepath):
         self.full_model.save_weights(filepath)
