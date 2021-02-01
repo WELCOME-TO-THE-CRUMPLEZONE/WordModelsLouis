@@ -1191,20 +1191,92 @@ The images generated for \texttt{CarRacing-v0} visually somewhat visually resemb
 The images generated for \texttt{SimCity-Snes} also resembled the game, with the most obvious visual glitch being incorrect colours palettes, which presumably arise as a form of confusion between the game's different seasonal colour palettes.
 
 %reconstruction pictures
-%TODO VAE generative pictures
+\begin{figure}
+  \centering
+  \begin{minipage}{0.45\textwidth}
+      \centering
+      \includegraphics[width=0.9\textwidth]{287_before.png} % first figure itself
+  \end{minipage}\hfill
+  \begin{minipage}{0.45\textwidth}
+      \centering
+      \includegraphics[width=0.9\textwidth]{287_after.png} % second figure itself
+  \end{minipage}
+  \caption{Observation and VAE reconstructed image for \texttt{CarRacing-v0}}
+\end{figure}
+
+% VAE generative pictures
+\begin{figure}
+  \centering
+  \begin{minipage}{0.3\textwidth}
+      \centering
+      \includegraphics[width=0.9\textwidth]{gen_im3.png} % first figure itself
+  \end{minipage}\hfill
+  \begin{minipage}{0.3\textwidth}
+      \centering
+      \includegraphics[width=0.9\textwidth]{gen_im1.png} % second figure itself
+  \end{minipage}\hfill
+  \begin{minipage}{0.3\textwidth}
+    \centering
+    \includegraphics[width=0.9\textwidth]{gen_im2.png} % second figure itself
+\end{minipage}
+\caption{Randomly generated images for \texttt{CarRacing-v0}}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \begin{minipage}{0.45\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{obs_24.png} % first figure itself
+  \end{minipage}\hfill
+  \begin{minipage}{0.45\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{recon_24.png} % second figure itself
+  \end{minipage}
+  \caption{Observation and VAE reconstructed image for \texttt{SimCity-Snes}}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \begin{minipage}{0.45\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{gen_im5.png} % first figure itself
+  \end{minipage}\hfill
+  \begin{minipage}{0.45\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{gen_im4.png} % second figure itself
+  \end{minipage}
+  \caption{Randomly generated images for \texttt{SimCity-Snes}}
+\end{figure}
 
 \subsection{The MDRNN}
 \label{MDRNNsubsec}
 As mentioned earlier the MDRNNs in World Models consisted of an LSTM input layer and MDN output.
 For \texttt{CarRacing-v0} they used 256 hidden memory cells and for \texttt{VizDoom: Take Cover} they used 512.
 In both experiments they used five mixture components for the MDN output.
-I implemented the MDRNN using Keras' built in LSTM layer and a \href{https://github.com/cpmpercussion/keras-mdn-layer}{Keras MDN layer} implemented by my supervisor.
+I implemented the MDRNN using Keras' built in LSTM layer and a \href{https://github.com/cpmpercussion/keras-mdn-layer}{Keras MDN layer} written by my supervisor.
 For both of my experiments I used 256 memory cells and 5 mixture components.
 The use of more mixture components and memory cells to capture more complex dynamics was something I would have liked to experiment more with given time.
 
-%TODO Dream stuff
+To train the MDRNN the already trained $V$ component is used to preprocess the existing rollouts into latent representations.
+Rather than storing a single latent vector $z$ for each original observation we store $\mu$ and $\sigma$.
+In training we take a batch of multiple episodes, and unroll the network over each episode.
+In each training batch we sample latent variables using the stored $\mu$ and $\sigma$ and task the MDRNN with learning to predict these sequences.
+By sampling each time we see an episode we avoid overfitting to a single arbitray sampled value.
+
+I did not implement real time interactive dreams but I was able to record footage of dreams under agent policies.
+For \texttt{CarRacing-v0} I found the dream comparable in quality to the interactive dream released with World Models.
+The model was able to correctly simulate dynamics of the world, including acceleration, turning, and the initial camera zoom.
+It did encounter similar decoherence issues where the track would behave unpredictably and once lost would not reappear.
+For \texttt{SimCity-v0} the dreams were able to remain relatively coherent but did not learn long term dynamics of the world or such as seasonal change.
+I would have liked to experiment with this more by using more powerful hardware to facilitate training on long sequences and more data.
+
 
 \section{Conclusion and Further Work}
+%blah blah I learned a lot
+%More things I would have liked to do
+%response papers (charles')
+
+
 
 \clearpage
 \bibliography{ref} 
