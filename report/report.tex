@@ -170,7 +170,7 @@ In part due to the sheer beauty of the dreams this report focuses more on the in
 % These dreams were close enough to the original environment that agents could be trained entirely inside a dream to perform well in the original environment.
 % In this project I primarily set out to investigate this part of World Models, which consists of the $V$ and $M$ components.
 
-My project was to reimpliment the World Models architecture and to explore its use in different environments.
+My project was to reimplement the World Models architecture and to explore its use in different environments.
 The original intention was to experiment to see if the internal model could learn to simulate dynamics of more complex environments, but this got somewhat cut short due to time constraints.
 The structure of this report is as follows.
 We begin with a brief overview of the World Models' architecture which serves as the primary motivation throughout this report.
@@ -1253,7 +1253,7 @@ The images generated for \texttt{SimCity-Snes} also resembled the game, with the
 As mentioned earlier the MDRNNs in World Models consisted of an LSTM input layer and MDN output.
 For \texttt{CarRacing-v0} they used 256 hidden memory cells and for \texttt{VizDoom: Take Cover} they used 512.
 In both experiments they used five mixture components for the MDN output.
-I implemented the MDRNN using Keras' built in LSTM layer and a \href{https://github.com/cpmpercussion/keras-mdn-layer}{Keras MDN layer} written by my supervisor.
+I implemented the MDRNN using Keras' built in LSTM layer and a \href{https://github.com/cpmpercussion/keras-mdn-layer}{Keras MDN layer} written by my supervisor Charles Martin.
 For both of my experiments I used 256 memory cells and 5 mixture components.
 The use of more mixture components and memory cells to capture more complex dynamics was something I would have liked to experiment more with given time.
 
@@ -1272,9 +1272,27 @@ I would have liked to experiment with this more by using more powerful hardware 
 
 
 \section{Conclusion and Further Work}
-%blah blah I learned a lot
-%More things I would have liked to do
-%response papers (charles')
+World Models gives a convincing arguement for Schmidhuber's approach of learning an independent Model and Controller.
+The computing power need to implement World Models is relatively accessible and this has led to a large number of \href{https://paperswithcode.com/paper/world-models}{reimplementations}.
+I'd like to especially acknowledge \cite{green2020} which gives a particularly detailed explanation of both the maths and code involved and that I wish I had seen before writing my own version.
+Another interesting replication is \cite{ctallec}, whose authors achieved similar performance regardless of whether or not they trained the $M$ component, raising the question of whether that was truly responsible for the agent's performance.
+My supervisor collaborated on a paper \citep{DBLP:journals/corr/abs-1901-07859} analysing the specifics of how $M$ actually learns to model environment dynamics.
+Finally, David Ha has subsequently worked on internal models which aren't necessarily predictive \citep{freeman2019learning} and learning more rigid predictive models for planning \citep{pmlr-v97-hafner19a}.
+The discussion of model-based agents is far from over and there are a lot of exciting possibilities.
+
+I learned a lot in implementing world models.
+Particularly thrilling to me was the surprising generative power of stochastic models such as the VAE and MDRNN.
+Something that is less reflected in this report is that having never worked on a larger scale neural net based project before a lot of the the learning for me was practical.
+I became a lot more familiar with the Gym, Tensorflow, and Keras libraries as well as small details, such as memory management during training, which make a huge difference.
+My project was unfortunately cut rather short by administrative issues, but there was a lot more I would have loved to experiment with.
+In particular I think the modelling of more complex dynamics in \texttt{SimCity-Snes} deserved more attention.
+Lastly, I am still struck by the beauty of World Models dreams and think there is also a lot of potential to be explored in more artistic applications such as video generation or interactive computer generated environments.
+
+%replications
+%criticism
+%further work
+
+
 
 
 

@@ -154,3 +154,37 @@ openai.com/envs/CarRacing-v0/}"
   year={2015},
   howpublished={\url{https://keras.io}},
 }
+@misc{green2020,
+  title={World Models (the long version)},
+  author={Green, Adam},
+  year={2020},
+  howpublished = "URL: \url{https://adgefficiency.com/world-models/}"
+}
+@misc{ctallec,
+  title={Reproducing ``World Models''},
+  author={Tallec, Corentin and Blier, Leonard and Kalainathan, Diviyan},
+  year={2020},
+  howpublished = "URL: \url{https://ctallec.github.io/world-models/}"
+}
+@article{DBLP:journals/corr/abs-1901-07859,
+  author    = {Kai Olav Ellefsen and
+               Charles Patrick Martin and
+               Jim T{\o}rresen},
+  title     = {How do Mixture Density RNNs Predict the Future?},
+  journal   = {CoRR},
+  volume    = {abs/1901.07859},
+  year      = {2019},
+  url       = {http://arxiv.org/abs/1901.07859},
+  archivePrefix = {arXiv},
+  eprint    = {1901.07859},
+  timestamp = {Sat, 02 Feb 2019 16:56:00 +0100},
+  biburl    = {https://dblp.org/rec/journals/corr/abs-1901-07859.bib},
+  bibsource = {dblp computer science bibliography, https://dblp.org}
+}
+@article{freeman2019learning,
+  title={Learning to predict without looking ahead: World models without forward prediction},
+  author={Freeman, C Daniel and Metz, Luke and Ha, David},
+  journal={arXiv preprint arXiv:1910.13038},
+  year={2019}
+}
+@InProceedings{pmlr-v97-hafner19a, title = {Learning Latent Dynamics for Planning from Pixels}, author = {Hafner, Danijar and Lillicrap, Timothy and Fischer, Ian and Villegas, Ruben and Ha, David and Lee, Honglak and Davidson, James}, booktitle = {Proceedings of the 36th International Conference on Machine Learning}, pages = {2555--2565}, year = {2019}, editor = {Kamalika Chaudhuri and Ruslan Salakhutdinov}, volume = {97}, series = {Proceedings of Machine Learning Research}, month = {09--15 Jun}, publisher = {PMLR}, pdf = {http://proceedings.mlr.press/v97/hafner19a/hafner19a.pdf}, url = { http://proceedings.mlr.press/v97/hafner19a.html }, abstract = {Planning has been very successful for control tasks with known environment dynamics. To leverage planning in unknown environments, the agent needs to learn the dynamics from interactions with the world. However, learning dynamics models that are accurate enough for planning has been a long-standing challenge, especially in image-based domains. We propose the Deep Planning Network (PlaNet), a purely model-based agent that learns the environment dynamics from images and chooses actions through fast online planning in latent space. To achieve high performance, the dynamics model must accurately predict the rewards ahead for multiple time steps. We approach this using a latent dynamics model with both deterministic and stochastic transition components. Moreover, we propose a multi-step variational inference objective that we name latent overshooting. Using only pixel observations, our agent solves continuous control tasks with contact dynamics, partial observability, and sparse rewards, which exceed the difficulty of tasks that were previously solved by planning with learned models. PlaNet uses substantially fewer episodes and reaches final performance close to and sometimes higher than strong model-free algorithms.} }
